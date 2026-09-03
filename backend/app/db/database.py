@@ -7,7 +7,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 import datetime
 import os
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "chronotrade.db")
+DB_DIR = os.environ.get("PERSISTENT_DATA_DIR") or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+os.makedirs(DB_DIR, exist_ok=True)
+DB_PATH = os.environ.get("SQLITE_DB_PATH") or os.path.join(DB_DIR, "chronotrade.db")
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
