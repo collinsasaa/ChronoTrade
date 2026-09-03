@@ -1,4 +1,5 @@
 # 🚀 ChronoTrade — Institutional-Grade Quantitative Strategy & Backtesting Terminal
+[![CI Pipeline](https://github.com/collinsasaa/ChronoTrade/actions/workflows/ci.yml/badge.svg)](https://github.com/collinsasaa/ChronoTrade/actions/workflows/ci.yml)
 
 ChronoTrade is a high-performance, web-based quantitative backtesting engine and algorithmic strategy simulator. Built for quantitative researchers, algorithmic traders, and software engineers, ChronoTrade incorporates real-world market friction modeling—including dynamic bid-ask spreads, volume/volatility slippage, broker commission schedules, Almgren-Chriss market impact, and latency constraints.
 
@@ -102,3 +103,16 @@ python -m pytest tests -v
 
 * **Live Frontend:** [https://chronotrade.vercel.app](https://chronotrade.vercel.app)
 * **Live API Backend:** [https://chronotrade-ss33.onrender.com](https://chronotrade-ss33.onrender.com)
+
+---
+
+## ⚠️ Deployment Notes
+
+* **Ephemeral OHLCV Cache:** The `backend/data/` directory stores cached OHLCV CSV files. On Render's free tier the filesystem is ephemeral — cache files reset on each deploy or container restart. This is best-effort caching, not a substitute for a persistent data store. A cache freshness TTL (default 24 hours, configurable via `CACHE_TTL_HOURS` env var) triggers automatic re-fetches from yfinance when data goes stale.
+* **Ephemeral SQLite:** User accounts stored in SQLite are also ephemeral on Render's free tier. JWT self-healing automatically reconstructs accounts from the signed token on container restart.
+
+---
+
+## 📜 License
+
+This project is licensed under the [MIT License](LICENSE).
