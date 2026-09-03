@@ -22,7 +22,7 @@
     --bg-card-hover: #F1F5F9;
     --border-terminal: #E2E8F0;
     --text-primary: #0F172A;
-    --text-muted: #64748B;
+    --text-muted: #475569;
   }
 
   body {
@@ -34,7 +34,11 @@
   }
 }
 
-/* Premium Light Mode Styling Overrides */
+/* ==========================================================================
+   Comprehensive Light Mode Theme Overrides (High Contrast & Crisp Polish)
+   ========================================================================== */
+
+/* Main Layout & Terminal Backgrounds */
 html.light-theme .bg-\[\#070B12\] {
   background-color: #F8FAFC !important;
 }
@@ -42,21 +46,30 @@ html.light-theme .bg-\[\#070B12\] {
 html.light-theme aside {
   background-color: #FFFFFF !important;
   border-right-color: #E2E8F0 !important;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
 }
 
+html.light-theme header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #E2E8F0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+/* Card Containers */
 html.light-theme .bg-slate-950 {
   background-color: #FFFFFF !important;
   border-color: #E2E8F0 !important;
   color: #0F172A !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
+html.light-theme .bg-slate-950\/95,
 html.light-theme .bg-slate-950\/90,
 html.light-theme .bg-slate-950\/80,
 html.light-theme .bg-slate-950\/60 {
   background-color: rgba(255, 255, 255, 0.95) !important;
   border-color: #E2E8F0 !important;
+  color: #0F172A !important;
 }
 
 html.light-theme .bg-slate-900,
@@ -69,6 +82,7 @@ html.light-theme .bg-slate-900\/40 {
   color: #0F172A !important;
 }
 
+/* Borders & Dividers */
 html.light-theme .border-slate-800,
 html.light-theme .border-slate-900,
 html.light-theme .border-slate-700 {
@@ -80,7 +94,7 @@ html.light-theme .divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
   border-color: #E2E8F0 !important;
 }
 
-/* Text Colors in Light Mode */
+/* Typography & Text Contrast */
 html.light-theme .text-slate-100,
 html.light-theme .text-slate-200,
 html.light-theme .text-slate-300 {
@@ -111,7 +125,7 @@ html.light-theme .text-amber-400 {
   color: #D97706 !important;
 }
 
-/* Light Mode Badges & Active Elements */
+/* Interactive Badges & Button States */
 html.light-theme .bg-cyan-500\/15,
 html.light-theme .bg-cyan-500\/10,
 html.light-theme .bg-cyan-500\/20 {
@@ -134,7 +148,7 @@ html.light-theme .bg-rose-500\/20 {
   color: #E11D48 !important;
 }
 
-/* Form Inputs & Select Dropdowns */
+/* Form Controls & Select Dropdowns */
 html.light-theme input[type="text"],
 html.light-theme input[type="email"],
 html.light-theme input[type="password"],
@@ -152,23 +166,28 @@ html.light-theme input[type="password"]:focus,
 html.light-theme input[type="number"]:focus,
 html.light-theme select:focus {
   border-color: #0891B2 !important;
-  ring: 2px #0891B2 !important;
+  outline: 2px solid #0891B2 !important;
 }
 
-html.light-theme option {
+html.light-theme option,
+html.light-theme optgroup {
   background-color: #FFFFFF !important;
   color: #0F172A !important;
 }
 
-/* Table styling in Light Mode */
+/* Table Styling in Light Mode */
 html.light-theme table thead {
   background-color: #F8FAFC !important;
   color: #475569 !important;
   border-bottom-color: #E2E8F0 !important;
 }
 
+html.light-theme table tbody tr {
+  border-bottom-color: #F1F5F9 !important;
+}
+
 html.light-theme table tbody tr:hover {
-  background-color: #F1F5F9 !important;
+  background-color: #F8FAFC !important;
 }
 
 /* Glassmorphic Panel in Light Mode */
@@ -185,6 +204,11 @@ html.light-theme .glass-panel {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+/* KaTeX Math Formatting in Light Mode */
+html.light-theme .katex {
+  color: #0891B2 !important;
 }
 
 /* Scrollbar styling */
