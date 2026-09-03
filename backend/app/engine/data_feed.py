@@ -145,6 +145,17 @@ def get_ohlcv_data(symbol: str, force_refresh: bool = False) -> pd.DataFrame:
     df_seed.to_csv(cache_path, index=False)
     return df_seed
 
+def get_pairs_ohlcv_data(symbol_a: str, symbol_b: str, force_refresh: bool = False) -> pd.DataFrame:
+    """Load and align OHLCV data for two symbols (merging close_b)."""
+    df_a = get_ohlcv_data(symbol_a, force_refresh=force_refresh)
+    df_b = get_ohlcv_data(symbol_b, force_refresh=force_refresh)
+    
+    if df_a.empty or df_b.empty:
+        return df_a
+        
+    merged = pd.merge(df_a, df_b[["date", "close"]], on="date", how="inner", suffixes=("", "_b"))
+    return merged
+
 def get_available_symbols() -> List[Dict[str, str]]:
     """Return comprehensive list of supported tickers with metadata."""
     return [

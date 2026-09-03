@@ -13,7 +13,7 @@ import uuid
 
 from app.db.database import get_db, TradeHistoryRecord, UserRecord
 from app.engine.auth import decode_access_token
-from app.engine.data_feed import get_ohlcv_data
+from app.engine.data_feed import get_ohlcv_data, get_pairs_ohlcv_data
 from app.engine.friction import FrictionConfig, SlippageModel, LatencyMode
 from app.engine.simulator import (
     EventDrivenSimulator,
@@ -106,7 +106,13 @@ def run_backtest(
     db: Session = Depends(get_db)
 ):
     """Execute complete event-driven backtest simulation with institutional analytics."""
-    data_df = get_ohlcv_data(req.symbol)
+    if req.strategy_id == "strat_pairs" or "symbol_b" in req.strategy_params:
+        symbol_a = req.strategy_params.get("symbol_a", req.symbol)
+        symbol_b = req.strategy_params.get("symbol_b", "AAPL" if symbol_a != "AAPL" else "MSFT")
+        data_df = get_pairs_ohlcv_data(symbol_a, symbol_b)
+    else:
+        data_df = get_ohlcv_data(req.symbol)
+
     if data_df.empty:
         raise HTTPException(status_code=400, detail=f"No market data for ticker {req.symbol}")
         

@@ -9,13 +9,16 @@ from typing import List, Dict, Any, Optional
 import pandas as pd
 import numpy as np
 from scipy import stats
+from statsmodels.tsa.stattools import coint
 from app.engine.strategies.base import Strategy, Signal, SignalType
 
 class PairsTradingStrategy(Strategy):
     """
     Pairs Trading / Statistical Arbitrage.
     Computes hedge ratio beta via OLS regression: Asset_A ~ beta * Asset_B.
+    Checks cointegration (p-value <= 0.05) before generating signals.
     Triggers LONG Asset A / SHORT Asset B when Spread Z-Score < -entry_z.
+    Exits long position when Spread Z-Score >= exit_z (mean reversion target).
     """
     def __init__(self, params: Optional[Dict[str, Any]] = None):
         default_params = {
@@ -35,23 +38,28 @@ class PairsTradingStrategy(Strategy):
         exit_z = float(self.params["exit_z"])
         symbol_a = self.params.get("symbol_a", "MSFT")
         
-        # If history contains multi-asset or close columns
         if len(history) < lookback + 1:
             return []
             
-        closes = history["close"]
-        # Use synthetic ratio or pseudo-pair if single series provided
-        if "close_b" in history.columns:
-            closes_a = history["close"]
-            closes_b = history["close_b"]
-        else:
-            # Create synthetic correlated pair for single asset backtest demo
-            closes_a = closes
-            closes_b = closes.shift(1).bfill() * 0.98 + np.random.normal(0, 0.5, len(closes))
+        if "close_b" not in history.columns:
+            # Requires multi-asset series (close and close_b)
+            return []
+            
+        closes_a = history["close"]
+        closes_b = history["close_b"]
             
         # OLS regression for hedge ratio
         y = closes_a.iloc[-lookback:]
         x = closes_b.iloc[-lookback:]
+        
+        # Cointegration test (ADF on residuals)
+        try:
+            _, p_value, _ = coint(y, x)
+            if p_value > 0.05:
+                # Skip spurious regression pairs that fail cointegration
+                return []
+        except Exception:
+            return []
         
         slope, intercept, _, _, _ = stats.linregress(x, y)
         hedge_ratio = float(slope)
@@ -71,14 +79,14 @@ class PairsTradingStrategy(Strategy):
                 signal_type=SignalType.BUY,
                 symbol=symbol_a,
                 target_pct=1.0,
-                reason=f"Pairs Spread Z-Score ({z_score:.2f}) < -{entry_z} (Hedge Ratio: {hedge_ratio:.2f})"
+                reason=f"Pairs Spread Z-Score ({z_score:.2f}) < -{entry_z} (Cointegrated p={p_value:.3f}, Hedge: {hedge_ratio:.2f})"
             )]
-        elif z_score >= entry_z and curr_pos > 0:
+        elif z_score >= exit_z and curr_pos > 0:
             return [Signal(
                 signal_type=SignalType.SELL,
                 symbol=symbol_a,
                 target_pct=0.0,
-                reason=f"Pairs Spread Z-Score ({z_score:.2f}) > {entry_z}"
+                reason=f"Pairs Spread Mean Reversion Exit Z-Score ({z_score:.2f}) >= {exit_z}"
             )]
             
         return []
