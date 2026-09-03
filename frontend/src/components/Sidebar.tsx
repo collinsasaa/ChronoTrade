@@ -1,51 +1,20 @@
 import React, { useState } from 'react';
 import {
-  Activity, Play, Sliders, RefreshCw, BarChart2, Cpu, Layers, Radio, LogOut, LogIn, UserPlus, Sun, Moon, HelpCircle, History, Menu, X
+  Play, Sliders, RefreshCw, BarChart2, Cpu, Layers, Radio, LogOut, LogIn, UserPlus, Sun, Moon, HelpCircle, History, Menu, X
 } from 'lucide-react';
 import { useTradeStore } from '../store/useTradeStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { BeginnerGuideModal } from './BeginnerGuideModal';
+import { ActiveTickerSelector } from './ActiveTickerSelector';
 
 export const Sidebar: React.FC = () => {
   const {
-    symbols,
-    selectedSymbol,
-    setSelectedSymbol,
     activeTab,
     setActiveTab,
     runBacktest,
     isLoading
   } = useTradeStore();
-
-  const groupedSymbols = symbols.reduce<Record<string, Array<{ symbol: string; name: string }>>>((acc, symbol) => {
-    const group = symbol.category || 'Other';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(symbol);
-    return acc;
-  }, {});
-
-  const categoryOrder = [
-    'Index ETF',
-    'Fixed Income ETF',
-    'Commodities ETF',
-    'Forex Currency Pair',
-    'Tech MegaCap',
-    'Banking & Finance',
-    'Healthcare',
-    'Consumer Staples',
-    'Media & Entertainment',
-    'Aerospace & Industrial',
-    'Energy & Oil',
-    'Crypto Digital Asset',
-    'Other'
-  ];
-
-  const orderedCategories = Object.keys(groupedSymbols).sort((a, b) => {
-    const aIndex = categoryOrder.indexOf(a);
-    const bIndex = categoryOrder.indexOf(b);
-    return (aIndex === -1 ? categoryOrder.length : aIndex) - (bIndex === -1 ? categoryOrder.length : bIndex);
-  });
 
   const { user, isAuthenticated, logout, openAuthModal } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
@@ -79,30 +48,13 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Ticker Selector + Quick Action + Hamburger */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 max-w-[130px]">
-            <Activity className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mr-1" />
-            <select
-              value={selectedSymbol}
-              onChange={(e) => setSelectedSymbol(e.target.value)}
-              className="bg-transparent text-xs font-mono font-bold text-slate-200 focus:outline-none w-full cursor-pointer truncate"
-            >
-              {orderedCategories.map((category) => (
-                <optgroup key={category} label={category}>
-                  {groupedSymbols[category].map((s) => (
-                    <option key={s.symbol} value={s.symbol} className="bg-slate-900 text-slate-200">
-                      {s.symbol} — {s.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
+        <div className="flex items-center gap-2 max-w-[210px] sm:max-w-[260px]">
+          <ActiveTickerSelector compact={true} />
 
           <button
             onClick={() => runBacktest()}
             disabled={isLoading}
-            className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold active:scale-95 transition-all shadow-md shadow-emerald-500/20"
+            className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold active:scale-95 transition-all shadow-md shadow-emerald-500/20 flex-shrink-0 cursor-pointer"
             title="Run Simulation"
           >
             {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-slate-950" />}
@@ -110,14 +62,14 @@ export const Sidebar: React.FC = () => {
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-slate-100 transition-colors"
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-slate-100 transition-colors flex-shrink-0 cursor-pointer"
           >
             {mobileMenuOpen ? <X className="w-5 h-5 text-rose-400" /> : <Menu className="w-5 h-5 text-slate-300" />}
           </button>
         </div>
       </header>
 
-      {/* ================= MOBILE SLIDE-OVER DRAWER (Shown when hamburger toggled) ================= */}
+      {/* ================= MOBILE SLIDE-OVER DRAWER ================= */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-between p-4 animate-in fade-in duration-200">
           <div className="space-y-5">
@@ -136,7 +88,14 @@ export const Sidebar: React.FC = () => {
               </button>
             </div>
 
-            <nav className="space-y-1.5 overflow-y-auto max-h-[60vh] pr-1">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1 mb-1">
+                Active Ticker
+              </label>
+              <ActiveTickerSelector />
+            </div>
+
+            <nav className="space-y-1.5 overflow-y-auto max-h-[50vh] pr-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -147,7 +106,7 @@ export const Sidebar: React.FC = () => {
                       setActiveTab(item.id as any);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold tracking-wide transition-all ${
+                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold tracking-wide transition-all cursor-pointer ${
                       isActive
                         ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold'
                         : 'text-slate-300 hover:bg-slate-900 border border-transparent'
@@ -251,24 +210,7 @@ export const Sidebar: React.FC = () => {
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1">
               Active Ticker
             </label>
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
-              <Activity className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <select
-                value={selectedSymbol}
-                onChange={(e) => setSelectedSymbol(e.target.value)}
-                className="bg-transparent text-xs font-mono font-bold text-slate-200 focus:outline-none w-full cursor-pointer"
-              >
-                {orderedCategories.map((category) => (
-                  <optgroup key={category} label={category}>
-                    {groupedSymbols[category].map((s) => (
-                      <option key={s.symbol} value={s.symbol} className="bg-slate-900 text-slate-200">
-                        {s.symbol} — {s.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
+            <ActiveTickerSelector />
           </div>
 
           {/* Vertical Navigation Tabs */}
@@ -284,7 +226,7 @@ export const Sidebar: React.FC = () => {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id as any)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                       isActive
                         ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-md shadow-cyan-500/10 font-bold'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
@@ -341,7 +283,7 @@ export const Sidebar: React.FC = () => {
             <div className="relative pt-1">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="w-full flex items-center justify-between bg-slate-900 border border-slate-800 hover:border-slate-700 p-2 rounded-xl transition-all text-xs text-slate-200"
+                className="w-full flex items-center justify-between bg-slate-900 border border-slate-800 hover:border-slate-700 p-2 rounded-xl transition-all text-xs text-slate-200 cursor-pointer"
               >
                 <div className="flex items-center gap-2 truncate">
                   <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs">
@@ -363,7 +305,7 @@ export const Sidebar: React.FC = () => {
                       logout();
                       setShowUserMenu(false);
                     }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-950/30 rounded-lg flex items-center gap-2 font-semibold transition-colors"
+                    className="w-full text-left px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-950/30 rounded-lg flex items-center gap-2 font-semibold transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     Sign Out
@@ -375,14 +317,14 @@ export const Sidebar: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => openAuthModal('signin')}
-                className="flex-1 py-2 bg-slate-900 border border-slate-800 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1"
+                className="flex-1 py-2 bg-slate-900 border border-slate-800 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5 text-cyan-400" />
                 Sign In
               </button>
               <button
                 onClick={() => openAuthModal('signup')}
-                className="flex-1 py-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-1"
+                className="flex-1 py-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 Register
