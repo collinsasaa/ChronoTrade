@@ -73,7 +73,12 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
         "created_at": user_obj.created_at.isoformat()
     }
     
-    token = create_access_token({"sub": user_id, "email": email_clean})
+    token = create_access_token({
+        "sub": user_id, 
+        "email": email_clean,
+        "full_name": user_obj.full_name,
+        "hashed_pwd": user_obj.hashed_password
+    })
     
     return {
         "access_token": token,
@@ -89,7 +94,7 @@ def sign_in(request: Request, payload: SignInPayload, db: Session = Depends(get_
     
     user = db.query(UserRecord).filter(UserRecord.email == email_clean).first()
     if not user:
-        raise HTTPException(status_code=401, detail="Account not found. If the server restarted, please register your account again.")
+        raise HTTPException(status_code=401, detail="Account not found. If the server restarted on a free tier, your ephemeral account was wiped. Please sign up again.")
         
     if not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid password. Please check your password and try again.")
@@ -102,7 +107,12 @@ def sign_in(request: Request, payload: SignInPayload, db: Session = Depends(get_
         "created_at": user.created_at.isoformat()
     }
         
-    token = create_access_token({"sub": user_id, "email": email_clean})
+    token = create_access_token({
+        "sub": user_id, 
+        "email": email_clean,
+        "full_name": user.full_name,
+        "hashed_pwd": user.hashed_password
+    })
     
     return {
         "access_token": token,
@@ -111,22 +121,43 @@ def sign_in(request: Request, payload: SignInPayload, db: Session = Depends(get_
     }
 
 @router.get("/me")
-def get_me(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
-    """Retrieve profile details for current authenticated user."""
+def get_current_user_profile(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
+    """Return user profile from valid JWT token. Self-heals database on ephemeral servers."""
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid authentication token.")
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header.")
         
     token = authorization.split(" ")[1]
     payload = decode_access_token(token)
-    
-    if not payload or "sub" not in payload:
-        raise HTTPException(status_code=401, detail="Expired or invalid token.")
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired access token.")
         
-    user_id = payload["sub"]
-    
+    user_id = payload.get("sub")
     user = db.query(UserRecord).filter(UserRecord.id == user_id).first()
+    
+    # Self-healing logic for ephemeral serverless/Render environments:
+    # If the SQLite DB was wiped by a container restart, but the user presents a valid,
+    # cryptographically signed JWT containing their account data, we seamlessly reconstruct 
+    # their account into the newly wiped DB.
     if not user:
-        raise HTTPException(status_code=404, detail="User account not found or server database restarted.")
+        if "email" in payload and "hashed_pwd" in payload:
+            try:
+                user = UserRecord(
+                    id=user_id,
+                    email=payload["email"],
+                    full_name=payload.get("full_name", "Quant Trader"),
+                    hashed_password=payload["hashed_pwd"]
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                
+                # Also run file backup just in case
+                backup_user(user)
+            except Exception as e:
+                db.rollback()
+                raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+        else:
+            raise HTTPException(status_code=401, detail="Account not found. If the server restarted, please register your account again.")
         
     return {
         "id": user.id,
