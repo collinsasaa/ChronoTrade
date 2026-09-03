@@ -91,7 +91,7 @@ def sign_in(request: Request, payload: SignInPayload, db: Session = Depends(get_
     
     user = db.query(UserRecord).filter(UserRecord.email == email_clean).first()
     if not user:
-        raise HTTPException(status_code=401, detail="Account not found. If the server restarted on a free tier, your ephemeral account was wiped. Please sign up again.")
+        raise HTTPException(status_code=401, detail="Account not found. Please sign up instead.")
         
     if not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid password. Please check your password and try again.")
