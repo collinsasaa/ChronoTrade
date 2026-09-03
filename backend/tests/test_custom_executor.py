@@ -44,17 +44,12 @@ def on_bar(h, c, ctx):
     with pytest.raises(ValueError, match="dunder attribute"):
         CustomCodeStrategy(code)
 
-def test_infinite_loop_timeout_containment():
+def test_reject_while_loops():
     code = """
 def on_bar(h, c, ctx):
     while True:
         pass
     return []
 """
-    strat = CustomCodeStrategy(code)
-    history = pd.DataFrame({"close": [100.0, 105.0]})
-    current_bar = {"symbol": "AAPL", "close": 105.0}
-    context = {}
-    # Should safely terminate after timeout and return empty list
-    signals = strat.on_bar(history, current_bar, context)
-    assert signals == []
+    with pytest.raises(ValueError, match="While loops"):
+        CustomCodeStrategy(code)

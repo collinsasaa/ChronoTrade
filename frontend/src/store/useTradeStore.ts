@@ -140,54 +140,7 @@ interface TradeStoreState {
 }
 
 export const useTradeStore = create<TradeStoreState>((set, get) => ({
-  symbols: [
-    { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', category: 'Index ETF' },
-    { symbol: 'QQQ', name: 'Invesco QQQ Trust (Nasdaq 100)', category: 'Index ETF' },
-    { symbol: 'IWM', name: 'iShares Russell 2000 ETF', category: 'Index ETF' },
-    { symbol: 'DIA', name: 'SPDR Dow Jones Industrial ETF', category: 'Index ETF' },
-    { symbol: 'TLT', name: 'iShares 20+ Year Treasury Bond ETF', category: 'Fixed Income ETF' },
-    { symbol: 'GLD', name: 'SPDR Gold Shares ETF', category: 'Commodities ETF' },
-    { symbol: 'SLV', name: 'iShares Silver Trust ETF', category: 'Commodities ETF' },
-    { symbol: 'USO', name: 'United States Oil Fund ETF', category: 'Commodities ETF' },
-
-    { symbol: 'EURUSD=X', name: 'Euro / US Dollar', category: 'Forex Currency Pair' },
-    { symbol: 'GBPUSD=X', name: 'British Pound / US Dollar', category: 'Forex Currency Pair' },
-    { symbol: 'USDJPY=X', name: 'US Dollar / Japanese Yen', category: 'Forex Currency Pair' },
-    { symbol: 'AUDUSD=X', name: 'Australian Dollar / US Dollar', category: 'Forex Currency Pair' },
-    { symbol: 'USDCAD=X', name: 'US Dollar / Canadian Dollar', category: 'Forex Currency Pair' },
-    { symbol: 'USDCHF=X', name: 'US Dollar / Swiss Franc', category: 'Forex Currency Pair' },
-
-    { symbol: 'AAPL', name: 'Apple Inc.', category: 'Tech MegaCap' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation', category: 'Tech MegaCap' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation', category: 'Semiconductors' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', category: 'Tech MegaCap' },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.', category: 'E-Commerce / Cloud' },
-    { symbol: 'META', name: 'Meta Platforms Inc.', category: 'Social Media / Tech' },
-    { symbol: 'TSLA', name: 'Tesla Inc.', category: 'EV / Clean Tech' },
-
-    { symbol: 'JPM', name: 'JPMorgan Chase & Co.', category: 'Banking & Finance' },
-    { symbol: 'GS', name: 'Goldman Sachs Group Inc.', category: 'Banking & Finance' },
-    { symbol: 'BAC', name: 'Bank of America Corp.', category: 'Banking & Finance' },
-    { symbol: 'V', name: 'Visa Inc.', category: 'Financial Services' },
-
-    { symbol: 'JNJ', name: 'Johnson & Johnson', category: 'Healthcare' },
-    { symbol: 'PFE', name: 'Pfizer Inc.', category: 'Pharma & Biotech' },
-    { symbol: 'UNH', name: 'UnitedHealth Group Inc.', category: 'Healthcare Services' },
-
-    { symbol: 'WMT', name: 'Walmart Inc.', category: 'Retail & Consumer' },
-    { symbol: 'KO', name: 'The Coca-Cola Company', category: 'Consumer Staples' },
-    { symbol: 'PG', name: 'Procter & Gamble Co.', category: 'Consumer Staples' },
-    { symbol: 'DIS', name: 'The Walt Disney Company', category: 'Media & Entertainment' },
-    { symbol: 'BA', name: 'The Boeing Company', category: 'Aerospace & Industrial' },
-    { symbol: 'CAT', name: 'Caterpillar Inc.', category: 'Industrial Heavy Equip' },
-    { symbol: 'XOM', name: 'Exxon Mobil Corp.', category: 'Energy & Oil' },
-
-    { symbol: 'BTC-USD', name: 'Bitcoin USD', category: 'Crypto Digital Asset' },
-    { symbol: 'ETH-USD', name: 'Ethereum USD', category: 'Crypto Digital Asset' },
-    { symbol: 'SOL-USD', name: 'Solana USD', category: 'Crypto Digital Asset' },
-    { symbol: 'XRP-USD', name: 'Ripple USD', category: 'Crypto Digital Asset' },
-    { symbol: 'DOGE-USD', name: 'Dogecoin USD', category: 'Crypto Digital Asset' }
-  ],
+  symbols: [],
   selectedSymbol: 'AAPL',
   selectedStrategyId: 'strat_ma_crossover',
   strategyParams: {
@@ -251,11 +204,12 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
   fetchSymbols: async () => {
     try {
       const res = await axios.get('/api/data/symbols');
-      if (res.data) {
+      if (res.data && Array.isArray(res.data) && res.data.length > 0) {
         set({ symbols: res.data });
       }
-    } catch (err) {
-      console.warn("Using default symbol list", err);
+    } catch (err: any) {
+      console.error("Failed to load symbols from API", err);
+      set({ error: "Unable to load market symbol metadata from backend API." });
     }
   },
 
