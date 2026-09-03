@@ -8,6 +8,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .vercel/
+.firebase/
 
 # Sensitive Environment Variables & Service Account Keys
 .env
