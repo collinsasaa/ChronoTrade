@@ -1,5 +1,5 @@
 """
-Unit tests for ChronoTrade User Authentication (Sign Up, Sign In, Profile info, Passlib bcrypt, PyJWT).
+Unit tests for ChronoTrade User Authentication (Sign Up, Sign In, Profile info, Passlib bcrypt, PyJWT, and Account Backup Restoration).
 """
 
 import pytest
@@ -8,6 +8,7 @@ import uuid
 from fastapi.testclient import TestClient
 from app.main import app
 from app.engine.auth import hash_password, verify_password, decode_access_token
+from app.db.database import UserRecord, backup_user, restore_users_from_backup, SessionLocal
 
 client = TestClient(app)
 
@@ -25,6 +26,26 @@ def test_bcrypt_hash_and_verify():
 
 def test_decode_invalid_jwt_token():
     assert decode_access_token("invalid.jwt.token") is None
+
+def test_user_backup_and_restore():
+    db = SessionLocal()
+    try:
+        unique_email = f"backup_test_{uuid.uuid4().hex[:6]}@chronotrade.io"
+        u = UserRecord(
+            id=f"usr_{uuid.uuid4().hex[:6]}",
+            email=unique_email,
+            full_name="Backup User",
+            hashed_password=hash_password("BackupPass123")
+        )
+        backup_user(u)
+        
+        # Verify restore retrieves account
+        restore_users_from_backup(db)
+        found = db.query(UserRecord).filter(UserRecord.email == unique_email).first()
+        assert found is not None
+        assert found.full_name == "Backup User"
+    finally:
+        db.close()
 
 def test_auth_flow():
     # Test Signup with unique test email

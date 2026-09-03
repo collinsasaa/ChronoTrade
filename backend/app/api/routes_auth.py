@@ -11,7 +11,7 @@ import uuid
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.db.database import get_db, UserRecord
+from app.db.database import get_db, UserRecord, backup_user
 from app.engine.auth import hash_password, verify_password, create_access_token, decode_access_token
 
 def get_client_ip(request: Request) -> str:
@@ -62,6 +62,9 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
     db.add(user_obj)
     db.commit()
     db.refresh(user_obj)
+    
+    # Save user account to persistent backup file
+    backup_user(user_obj)
     
     user_dict = {
         "id": user_obj.id,
