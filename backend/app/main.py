@@ -5,7 +5,6 @@ ChronoTrade FastAPI Server Entry Point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import init_db
-from app.db.firestore import init_firestore, is_firestore_active
 from app.api.routes_data import router as data_router
 from app.api.routes_strategies import router as strategy_router
 from app.api.routes_backtest import router as backtest_router
@@ -29,7 +28,6 @@ app.add_middleware(
 
 # Initialize databases
 init_db()
-init_firestore()
 
 # Register Routers
 app.include_router(auth_router)
@@ -43,7 +41,7 @@ def health_check():
     return {
         "status": "online",
         "system": "ChronoTrade Quantitative Engine v1.0",
-        "database": "firestore" if is_firestore_active() else "sqlite"
+        "database": "sqlite"
     }
 
 if __name__ == "__main__":

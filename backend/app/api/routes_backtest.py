@@ -12,12 +12,6 @@ import json
 import uuid
 
 from app.db.database import get_db, TradeHistoryRecord, UserRecord
-from app.db.firestore import (
-    is_firestore_active,
-    firestore_save_trade,
-    firestore_get_user_trades,
-    firestore_clear_user_trades
-)
 from app.engine.auth import decode_access_token
 from app.engine.data_feed import get_ohlcv_data
 from app.engine.friction import FrictionConfig, SlippageModel, LatencyMode
@@ -139,54 +133,32 @@ def run_backtest(
     )
     result["monte_carlo"] = mc_result
 
-    # If user is logged in, save trade execution log to database (Firestore or SQLite)
+    # If user is logged in, save trade execution log to database (SQLite)
     user_id = get_optional_user_id(authorization)
     if user_id:
         try:
             for t in result["trades"]:
-                trade_payload = {
-                    "id": f"th_{uuid.uuid4().hex[:12]}",
-                    "strategy_name": result["strategy_name"],
-                    "symbol": req.symbol,
-                    "side": t.get("side", "SELL"),
-                    "entry_date": t.get("entry_date", ""),
-                    "exit_date": t.get("exit_date", ""),
-                    "duration_bars": t.get("duration_bars", 0),
-                    "qty": t.get("qty", 0.0),
-                    "entry_price": t.get("entry_price", 0.0),
-                    "exit_price": t.get("exit_price", 0.0),
-                    "pnl": t.get("pnl", 0.0),
-                    "pnl_pct": t.get("pnl_pct", 0.0),
-                    "commission": t.get("commission", 0.0),
-                    "slippage": t.get("slippage", 0.0)
-                }
-
-                if is_firestore_active():
-                    firestore_save_trade(user_id, trade_payload)
-                else:
-                    record = TradeHistoryRecord(
-                        id=trade_payload["id"],
-                        user_id=user_id,
-                        strategy_name=trade_payload["strategy_name"],
-                        symbol=trade_payload["symbol"],
-                        side=trade_payload["side"],
-                        entry_date=trade_payload["entry_date"],
-                        exit_date=trade_payload["exit_date"],
-                        duration_bars=trade_payload["duration_bars"],
-                        qty=trade_payload["qty"],
-                        entry_price=trade_payload["entry_price"],
-                        exit_price=trade_payload["exit_price"],
-                        pnl=trade_payload["pnl"],
-                        pnl_pct=trade_payload["pnl_pct"],
-                        commission=trade_payload["commission"],
-                        slippage=trade_payload["slippage"]
-                    )
-                    db.add(record)
-            if not is_firestore_active():
-                db.commit()
-        except Exception as e:
-            if not is_firestore_active():
-                db.rollback()
+                record = TradeHistoryRecord(
+                    id=f"th_{uuid.uuid4().hex[:12]}",
+                    user_id=user_id,
+                    strategy_name=result["strategy_name"],
+                    symbol=req.symbol,
+                    side=t.get("side", "SELL"),
+                    entry_date=t.get("entry_date", ""),
+                    exit_date=t.get("exit_date", ""),
+                    duration_bars=t.get("duration_bars", 0),
+                    qty=t.get("qty", 0.0),
+                    entry_price=t.get("entry_price", 0.0),
+                    exit_price=t.get("exit_price", 0.0),
+                    pnl=t.get("pnl", 0.0),
+                    pnl_pct=t.get("pnl_pct", 0.0),
+                    commission=t.get("commission", 0.0),
+                    slippage=t.get("slippage", 0.0)
+                )
+                db.add(record)
+            db.commit()
+        except Exception:
+            db.rollback()
     
     return result
 
@@ -195,89 +167,70 @@ def get_user_trade_history(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Retrieve authenticated user's complete trade activity history (Firestore or SQLite)."""
+    """Retrieve authenticated user's complete trade activity history (SQLite)."""
     user_id = get_optional_user_id(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required to view trade history.")
 
-    if is_firestore_active():
-        trades_list = firestore_get_user_trades(user_id)
-        total_count = len(trades_list)
-        total_pnl = sum(t.get("pnl", 0.0) for t in trades_list)
-        wins = sum(1 for t in trades_list if t.get("pnl", 0.0) > 0)
-        total_commissions = sum(t.get("commission", 0.0) for t in trades_list)
-        total_slippage = sum(t.get("slippage", 0.0) for t in trades_list)
-        win_rate = (wins / total_count * 100.0) if total_count > 0 else 0.0
-
-        return {
-            "total_trades": total_count,
-            "total_pnl": total_pnl,
-            "win_rate": win_rate,
-            "total_commissions": total_commissions,
-            "total_slippage": total_slippage,
-            "trades": trades_list
-        }
-    else:
-        records = db.query(TradeHistoryRecord).filter(TradeHistoryRecord.user_id == user_id).order_by(TradeHistoryRecord.created_at.desc()).all()
+    records = db.query(TradeHistoryRecord).filter(TradeHistoryRecord.user_id == user_id).order_by(TradeHistoryRecord.created_at.desc()).all()
+    
+    trades_list = []
+    total_pnl = 0.0
+    wins = 0
+    total_commissions = 0.0
+    total_slippage = 0.0
+    
+    for r in records:
+        total_pnl += r.pnl
+        if r.pnl > 0:
+            wins += 1
+        total_commissions += r.commission
+        total_slippage += r.slippage
         
-        trades_list = []
-        total_pnl = 0.0
-        wins = 0
-        total_commissions = 0.0
-        total_slippage = 0.0
+        trades_list.append({
+            "id": r.id,
+            "strategy_name": r.strategy_name,
+            "symbol": r.symbol,
+            "side": r.side,
+            "entry_date": r.entry_date,
+            "exit_date": r.exit_date,
+            "duration_bars": r.duration_bars,
+            "qty": r.qty,
+            "entry_price": r.entry_price,
+            "exit_price": r.exit_price,
+            "pnl": r.pnl,
+            "pnl_pct": r.pnl_pct,
+            "commission": r.commission,
+            "slippage": r.slippage,
+            "created_at": r.created_at.isoformat()
+        })
         
-        for r in records:
-            total_pnl += r.pnl
-            if r.pnl > 0:
-                wins += 1
-            total_commissions += r.commission
-            total_slippage += r.slippage
-            
-            trades_list.append({
-                "id": r.id,
-                "strategy_name": r.strategy_name,
-                "symbol": r.symbol,
-                "side": r.side,
-                "entry_date": r.entry_date,
-                "exit_date": r.exit_date,
-                "duration_bars": r.duration_bars,
-                "qty": r.qty,
-                "entry_price": r.entry_price,
-                "exit_price": r.exit_price,
-                "pnl": r.pnl,
-                "pnl_pct": r.pnl_pct,
-                "commission": r.commission,
-                "slippage": r.slippage,
-                "created_at": r.created_at.isoformat()
-            })
-            
-        total_count = len(records)
-        win_rate = (wins / total_count * 100.0) if total_count > 0 else 0.0
-        
-        return {
-            "total_trades": total_count,
-            "total_pnl": total_pnl,
-            "win_rate": win_rate,
-            "total_commissions": total_commissions,
-            "total_slippage": total_slippage,
-            "trades": trades_list
-        }
+    total_count = len(records)
+    win_rate = (wins / total_count * 100.0) if total_count > 0 else 0.0
+    
+    return {
+        "total_trades": total_count,
+        "total_pnl": total_pnl,
+        "win_rate": win_rate,
+        "total_commissions": total_commissions,
+        "total_slippage": total_slippage,
+        "trades": trades_list
+    }
 
 @router.delete("/user-trades")
 def clear_user_trade_history(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Clear trade activity history for authenticated user (Firestore or SQLite)."""
+    """Clear trade activity history for authenticated user (SQLite)."""
     user_id = get_optional_user_id(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
         
-    if is_firestore_active():
-        firestore_clear_user_trades(user_id)
-    else:
-        db.query(TradeHistoryRecord).filter(TradeHistoryRecord.user_id == user_id).delete()
-        db.commit()
+    db.query(TradeHistoryRecord).filter(TradeHistoryRecord.user_id == user_id).delete()
+    db.commit()
+
+    return {"status": "cleared", "message": "User trade history cleared successfully."}
 
     return {"status": "cleared", "message": "User trade history cleared successfully."}
 

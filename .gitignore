@@ -14,3 +14,7 @@ __pycache__/
 backend/.env
 firebase-key.json
 *-key.json
+
+# Local SQLite Database
+*.db
+backend/*.db
