@@ -22,6 +22,7 @@ export const Dashboard: React.FC = () => {
       {/* Risk & Performance Summary Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <MetricCard
+          testId="metric-cumulative-return"
           label="Cumulative Return"
           value={`${summary.cumulative_return_pct.toFixed(2)}%`}
           subValue={`$${summary.final_equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
@@ -31,6 +32,7 @@ export const Dashboard: React.FC = () => {
         />
 
         <MetricCard
+          testId="metric-cagr"
           label="CAGR (Annualized)"
           value={`${summary.cagr_pct.toFixed(2)}%`}
           subValue="Geometric Growth Rate"
@@ -40,6 +42,7 @@ export const Dashboard: React.FC = () => {
         />
 
         <MetricCard
+          testId="metric-sharpe-ratio"
           label="Sharpe Ratio"
           value={summary.sharpe_ratio.toFixed(2)}
           subValue="Annualized Risk-Adjusted"
@@ -49,6 +52,7 @@ export const Dashboard: React.FC = () => {
         />
 
         <MetricCard
+          testId="metric-sortino-ratio"
           label="Sortino Ratio"
           value={summary.sortino_ratio.toFixed(2)}
           subValue="Downside Risk Only"
@@ -58,6 +62,7 @@ export const Dashboard: React.FC = () => {
         />
 
         <MetricCard
+          testId="metric-max-drawdown"
           label="Maximum Drawdown"
           value={`${summary.max_drawdown_pct.toFixed(2)}%`}
           subValue={`${risk_metrics.max_drawdown_duration_bars} Bars Duration`}
@@ -67,6 +72,7 @@ export const Dashboard: React.FC = () => {
         />
 
         <MetricCard
+          testId="metric-var-95"
           label="Parametric VaR (95%)"
           value={`${(risk_metrics.var_95_parametric * 100).toFixed(2)}%`}
           subValue={`CVaR: ${(risk_metrics.cvar_95 * 100).toFixed(2)}%`}

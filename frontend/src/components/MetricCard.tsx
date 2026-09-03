@@ -9,6 +9,7 @@ interface MetricCardProps {
   formulaLatex?: string;
   status?: 'good' | 'neutral' | 'bad';
   tooltipText?: string;
+  testId?: string;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -17,7 +18,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   subValue,
   formulaLatex,
   status = 'neutral',
-  tooltipText
+  tooltipText,
+  testId
 }) => {
   const [showModal, setShowModal] = useState(false);
 
@@ -43,6 +45,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <>
       <div
+        id={testId}
+        data-testid={testId}
         onClick={() => setShowModal(true)}
         className={`p-4 rounded-xl border ${getStatusBg()} backdrop-blur-md transition-all hover:scale-[1.02] shadow-lg flex flex-col justify-between cursor-pointer group relative`}
       >

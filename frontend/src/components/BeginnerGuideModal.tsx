@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, X, HelpCircle, TrendingUp, Sliders, Cpu } from 'lucide-react';
+import { GuidedWalkthrough } from './GuidedWalkthrough';
+import { useTradeStore } from '../store/useTradeStore';
 
 interface BeginnerGuideModalProps {
   isOpen: boolean;
@@ -8,10 +10,14 @@ interface BeginnerGuideModalProps {
 
 export const BeginnerGuideModal: React.FC<BeginnerGuideModalProps> = ({ isOpen, onClose }) => {
   const [activeTopic, setActiveTopic] = useState<'intro' | 'metrics' | 'strategies' | 'friction'>('intro');
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const { setSelectedSymbol, setSelectedStrategyId, runBacktest } = useTradeStore();
 
-  if (!isOpen) return null;
+  if (!isOpen && !showWalkthrough) return null;
 
   return (
+    <>
+      {isOpen && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-slate-950 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden max-h-[90vh] flex flex-col">
         {/* Glow Effects */}
@@ -92,6 +98,19 @@ export const BeginnerGuideModal: React.FC<BeginnerGuideModalProps> = ({ isOpen, 
                   <p className="text-xs text-slate-400">Inspect CAGR, Sharpe ratio, and drawdowns on the visual dashboard.</p>
                 </div>
               </div>
+
+              <button
+                onClick={() => { 
+                  setSelectedSymbol('AAPL');
+                  setSelectedStrategyId('strat_ma_crossover');
+                  runBacktest();
+                  setShowWalkthrough(true); 
+                  onClose(); 
+                }}
+                className="mt-4 w-full py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                🚀 Show Me How — Interactive Tour
+              </button>
             </div>
           )}
 
@@ -205,5 +224,8 @@ export const BeginnerGuideModal: React.FC<BeginnerGuideModalProps> = ({ isOpen, 
         </div>
       </div>
     </div>
+      )}
+      <GuidedWalkthrough isActive={showWalkthrough} onClose={() => setShowWalkthrough(false)} />
+    </>
   );
 };
