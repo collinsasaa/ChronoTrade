@@ -1,13 +1,30 @@
 """
-Unit tests for ChronoTrade User Authentication (Sign Up, Sign In, Profile info).
+Unit tests for ChronoTrade User Authentication (Sign Up, Sign In, Profile info, Passlib bcrypt, PyJWT).
 """
 
 import pytest
+import os
 import uuid
 from fastapi.testclient import TestClient
 from app.main import app
+from app.engine.auth import hash_password, verify_password, decode_access_token
 
 client = TestClient(app)
+
+def test_bcrypt_hash_and_verify():
+    password = "MySecurePassword123"
+    h1 = hash_password(password)
+    h2 = hash_password(password)
+    
+    # Bcrypt generates a unique salt per call
+    assert h1 != h2
+    assert verify_password(password, h1) is True
+    assert verify_password(password, h2) is True
+    assert verify_password("WrongPass", h1) is False
+    assert verify_password(password, "legacy_hash_string") is False
+
+def test_decode_invalid_jwt_token():
+    assert decode_access_token("invalid.jwt.token") is None
 
 def test_auth_flow():
     # Test Signup with unique test email
