@@ -109,7 +109,8 @@ python -m pytest tests -v
 ## ⚠️ Deployment Notes
 
 * **Ephemeral OHLCV Cache:** The `backend/data/` directory stores cached OHLCV CSV files. On Render's free tier the filesystem is ephemeral — cache files reset on each deploy or container restart. This is best-effort caching, not a substitute for a persistent data store. A cache freshness TTL (default 24 hours, configurable via `CACHE_TTL_HOURS` env var) triggers automatic re-fetches from yfinance when data goes stale.
-* **Ephemeral SQLite:** User accounts stored in SQLite are also ephemeral on Render's free tier. JWT self-healing automatically reconstructs accounts from the signed token on container restart.
+* **Persistent Postgres DB:** User accounts and trading history are now stored in a managed Postgres database (provisioned via `render.yaml`). **Note:** Render's free Postgres tier expires after ~30 days. If you are deploying this for anything beyond a demo or course project, it is highly recommended to upgrade to a low-cost paid database tier. If deploying manually on Render (not via Blueprint), you must create a Postgres instance in the dashboard and set the `DATABASE_URL` environment variable on the web service to its Internal Connection String.
+* **Account Migration Note:** As part of the transition from ephemeral SQLite to persistent Postgres, existing accounts in the old SQLite file or JSON backups were not carried forward. All users must re-register a new account once.
 
 ---
 

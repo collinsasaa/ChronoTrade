@@ -84,84 +84,8 @@ class TradeHistoryRecord(Base):
     slippage = Column(Float)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-USERS_BACKUP_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "users_backup.json")
-
-def backup_user(user_obj: UserRecord):
-    """Save user account record to persistent JSON backup file so accounts survive server restarts."""
-    try:
-        os.makedirs(os.path.dirname(USERS_BACKUP_PATH), exist_ok=True)
-        users = []
-        if os.path.exists(USERS_BACKUP_PATH):
-            try:
-                with open(USERS_BACKUP_PATH, "r", encoding="utf-8") as f:
-                    users = json.load(f)
-            except Exception:
-                users = []
-                
-        # Check if user already exists in backup
-        updated = False
-        for u in users:
-            if u["email"] == user_obj.email:
-                u["hashed_password"] = user_obj.hashed_password
-                u["full_name"] = user_obj.full_name
-                updated = True
-                break
-                
-        if not updated:
-            created_str = user_obj.created_at.isoformat() if hasattr(user_obj.created_at, "isoformat") else str(user_obj.created_at)
-            users.append({
-                "id": user_obj.id,
-                "email": user_obj.email,
-                "full_name": user_obj.full_name,
-                "hashed_password": user_obj.hashed_password,
-                "created_at": created_str
-            })
-            
-        with open(USERS_BACKUP_PATH, "w", encoding="utf-8") as f:
-            json.dump(users, f, indent=2)
-    except Exception as e:
-        print(f"User account backup log error: {e}")
-
-def restore_users_from_backup(db: Session):
-    """On server startup, restore all registered user accounts from JSON backup file into DB."""
-    try:
-        if not os.path.exists(USERS_BACKUP_PATH):
-            return
-            
-        with open(USERS_BACKUP_PATH, "r", encoding="utf-8") as f:
-            users_data = json.load(f)
-            
-        restored = False
-        for u_data in users_data:
-            existing = db.query(UserRecord).filter(UserRecord.email == u_data["email"]).first()
-            if not existing:
-                try:
-                    created_at_dt = datetime.datetime.fromisoformat(u_data["created_at"]) if "created_at" in u_data else datetime.datetime.utcnow()
-                except Exception:
-                    created_at_dt = datetime.datetime.utcnow()
-                    
-                new_user = UserRecord(
-                    id=u_data.get("id", f"usr_{u_data['email']}"),
-                    email=u_data["email"],
-                    full_name=u_data.get("full_name", "User"),
-                    hashed_password=u_data["hashed_password"],
-                    created_at=created_at_dt
-                )
-                db.add(new_user)
-                restored = True
-                
-        if restored:
-            db.commit()
-    except Exception as e:
-        print(f"User account restoration error: {e}")
-
 def init_db():
     Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        restore_users_from_backup(db)
-    finally:
-        db.close()
 
 def get_db():
     db = SessionLocal()

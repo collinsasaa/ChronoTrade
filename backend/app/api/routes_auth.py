@@ -11,7 +11,7 @@ import uuid
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.db.database import get_db, UserRecord, backup_user
+from app.db.database import get_db, UserRecord
 from app.engine.auth import hash_password, verify_password, create_access_token, decode_access_token
 
 def get_client_ip(request: Request) -> str:
@@ -62,9 +62,6 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
     db.add(user_obj)
     db.commit()
     db.refresh(user_obj)
-    
-    # Save user account to persistent backup file
-    backup_user(user_obj)
     
     user_dict = {
         "id": user_obj.id,
@@ -134,8 +131,8 @@ def get_current_user_profile(authorization: Optional[str] = Header(None), db: Se
     user_id = payload.get("sub")
     user = db.query(UserRecord).filter(UserRecord.id == user_id).first()
     
-    # Self-healing logic for ephemeral serverless/Render environments:
-    # If the SQLite DB was wiped by a container restart, but the user presents a valid,
+    # Self-healing logic for ephemeral serverless environments (e.g. SQLite fallback):
+    # If the DB was wiped by a container restart, but the user presents a valid,
     # cryptographically signed JWT containing their account data, we seamlessly reconstruct 
     # their account into the newly wiped DB.
     if not user:
@@ -150,9 +147,6 @@ def get_current_user_profile(authorization: Optional[str] = Header(None), db: Se
                 db.add(user)
                 db.commit()
                 db.refresh(user)
-                
-                # Also run file backup just in case
-                backup_user(user)
             except Exception as e:
                 db.rollback()
                 raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
