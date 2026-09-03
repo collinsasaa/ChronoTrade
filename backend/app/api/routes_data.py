@@ -20,3 +20,9 @@ def fetch_ohlcv(symbol: str, force_refresh: bool = Query(False)):
     if df.empty:
         raise HTTPException(status_code=404, detail=f"No price data found for {symbol}")
     return df.to_dict(orient="records")
+
+@router.post("/refresh/{symbol}")
+def refresh_symbol_cache(symbol: str):
+    """Force-refresh the OHLCV cache for a single symbol."""
+    df = get_ohlcv_data(symbol, force_refresh=True)
+    return {"status": "refreshed", "symbol": symbol.upper(), "rows": len(df)}

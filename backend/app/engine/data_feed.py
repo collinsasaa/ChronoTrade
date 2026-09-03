@@ -5,12 +5,75 @@ with yfinance online fetch fallback & disk caching across Stocks, ETFs, Commodit
 """
 
 import os
+import json
 import math
+import logging
+import datetime
 from typing import Dict, List, Any, Optional
 import numpy as np
 import pandas as pd
 
+logger = logging.getLogger(__name__)
+
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+
+CACHE_TTL_HOURS = int(os.environ.get("CACHE_TTL_HOURS", "24"))
+
+
+def _get_cache_meta_path(symbol: str) -> str:
+    """Return the path to the cache metadata JSON file for a symbol."""
+    return os.path.join(DATA_DIR, f"{symbol.upper()}.meta.json")
+
+
+def _write_cache_meta(symbol: str):
+    """Write a cache timestamp metadata file alongside the CSV cache."""
+    meta_path = _get_cache_meta_path(symbol)
+    try:
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump({"cached_at": datetime.datetime.utcnow().isoformat()}, f)
+    except Exception as e:
+        logger.warning(f"Failed to write cache meta for {symbol}: {e}")
+
+
+def _is_cache_stale(symbol: str) -> bool:
+    """Check if the cached data for a symbol is older than the configured TTL."""
+    meta_path = _get_cache_meta_path(symbol)
+    if not os.path.exists(meta_path):
+        return True
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        cached_at = datetime.datetime.fromisoformat(meta["cached_at"])
+        age_hours = (datetime.datetime.utcnow() - cached_at).total_seconds() / 3600.0
+        return age_hours > CACHE_TTL_HOURS
+    except Exception:
+        return True
+
+
+def _try_yfinance_fetch(symbol: str, cache_path: str) -> Optional[pd.DataFrame]:
+    """Attempt to fetch data from yfinance and cache it. Returns DataFrame or None on failure."""
+    try:
+        import yfinance as yf
+        ticker_obj = yf.Ticker(symbol)
+        df_yf = ticker_obj.history(period="5y")
+        if not df_yf.empty and len(df_yf) > 50:
+            df_yf = df_yf.reset_index()
+            date_col = "Date" if "Date" in df_yf.columns else df_yf.columns[0]
+            df_yf["date"] = pd.to_datetime(df_yf[date_col]).dt.strftime("%Y-%m-%d")
+            df_out = pd.DataFrame({
+                "date": df_yf["date"],
+                "open": df_yf["Open"].round(2),
+                "high": df_yf["High"].round(2),
+                "low": df_yf["Low"].round(2),
+                "close": df_yf["Close"].round(2),
+                "volume": df_yf["Volume"].round(0)
+            })
+            df_out.to_csv(cache_path, index=False)
+            _write_cache_meta(symbol)
+            return df_out
+    except Exception as e:
+        logger.warning(f"yfinance fetch failed for {symbol}: {e}")
+    return None
 
 TICKER_PROFILES = {
     # Index ETFs & Macro
@@ -106,43 +169,50 @@ def generate_synthetic_ohlcv(symbol: str, num_bars: int = 1500) -> pd.DataFrame:
 
 def get_ohlcv_data(symbol: str, force_refresh: bool = False) -> pd.DataFrame:
     """
-    Load OHLCV data for given symbol. Checks local disk cache first.
-    If online fetch via yfinance fails or key missing, uses synthetic seed data.
+    Load OHLCV data for given symbol with cache TTL freshness checking.
+    Cache is served if fresh. If stale, attempts yfinance refresh.
+    On refresh failure, falls back to serving the stale cache.
     """
     os.makedirs(DATA_DIR, exist_ok=True)
     cache_path = os.path.join(DATA_DIR, f"{symbol.upper()}.csv")
     
-    if os.path.exists(cache_path) and not force_refresh:
-        try:
-            df = pd.read_csv(cache_path)
-            if not df.empty and "close" in df.columns:
-                return df
-        except Exception:
-            pass
-            
-    try:
-        import yfinance as yf
-        ticker_obj = yf.Ticker(symbol)
-        df_yf = ticker_obj.history(period="5y")
-        if not df_yf.empty and len(df_yf) > 50:
-            df_yf = df_yf.reset_index()
-            date_col = "Date" if "Date" in df_yf.columns else df_yf.columns[0]
-            df_yf["date"] = pd.to_datetime(df_yf[date_col]).dt.strftime("%Y-%m-%d")
-            df_out = pd.DataFrame({
-                "date": df_yf["date"],
-                "open": df_yf["Open"].round(2),
-                "high": df_yf["High"].round(2),
-                "low": df_yf["Low"].round(2),
-                "close": df_yf["Close"].round(2),
-                "volume": df_yf["Volume"].round(0)
-            })
-            df_out.to_csv(cache_path, index=False)
-            return df_out
-    except Exception:
-        pass
+    # Check if cached file exists
+    cache_exists = os.path.exists(cache_path)
+    
+    if cache_exists and not force_refresh:
+        stale = _is_cache_stale(symbol)
+        if not stale:
+            # Fresh cache — serve directly
+            try:
+                df = pd.read_csv(cache_path)
+                if not df.empty and "close" in df.columns:
+                    return df
+            except Exception:
+                pass
+        else:
+            # Stale cache — try to refresh via yfinance
+            logger.info(f"Cache for {symbol} is stale, attempting refresh...")
+            refreshed = _try_yfinance_fetch(symbol, cache_path)
+            if refreshed is not None:
+                return refreshed
+            # yfinance failed — serve stale cache with a warning
+            logger.warning(f"yfinance refresh failed for {symbol}, serving stale cache")
+            try:
+                df = pd.read_csv(cache_path)
+                if not df.empty and "close" in df.columns:
+                    return df
+            except Exception:
+                pass
+    
+    # No cache or force_refresh — try yfinance
+    refreshed = _try_yfinance_fetch(symbol, cache_path)
+    if refreshed is not None:
+        return refreshed
         
+    # Final fallback — generate synthetic data
     df_seed = generate_synthetic_ohlcv(symbol.upper())
     df_seed.to_csv(cache_path, index=False)
+    _write_cache_meta(symbol)
     return df_seed
 
 def get_pairs_ohlcv_data(symbol_a: str, symbol_b: str, force_refresh: bool = False) -> pd.DataFrame:
