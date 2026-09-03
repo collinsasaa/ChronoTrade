@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import io
 import csv
+import re
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -21,6 +22,11 @@ class ExportPayload(BaseModel):
     risk_metrics: Dict[str, Any]
     trade_statistics: Dict[str, Any]
     trades: List[Dict[str, Any]]
+
+def sanitize_filename(val: str) -> str:
+    """Sanitizes user input string for safe Content-Disposition headers."""
+    cleaned = re.sub(r'[^A-Za-z0-9_-]', '_', val)
+    return re.sub(r'_+', '_', cleaned).strip('_') or "export"
 
 @router.post("/csv")
 def export_csv(payload: ExportPayload):
@@ -53,7 +59,9 @@ def export_csv(payload: ExportPayload):
         ])
         
     csv_content = output.getvalue()
-    filename = f"ChronoTrade_TradeLog_{payload.strategy_name.replace(' ', '_')}_{payload.symbol}.csv"
+    safe_strat = sanitize_filename(payload.strategy_name)
+    safe_symbol = sanitize_filename(payload.symbol)
+    filename = f"ChronoTrade_TradeLog_{safe_strat}_{safe_symbol}.csv"
     
     return Response(
         content=csv_content,
@@ -90,7 +98,6 @@ def export_pdf(payload: ExportPayload):
         spaceBefore=14,
         spaceAfter=8
     )
-    normal_style = styles['Normal']
     
     elements = []
     
@@ -169,7 +176,9 @@ def export_pdf(payload: ExportPayload):
     pdf_bytes = buffer.getvalue()
     buffer.close()
     
-    filename = f"ChronoTrade_Report_{payload.strategy_name.replace(' ', '_')}_{payload.symbol}.pdf"
+    safe_strat = sanitize_filename(payload.strategy_name)
+    safe_symbol = sanitize_filename(payload.symbol)
+    filename = f"ChronoTrade_Report_{safe_strat}_{safe_symbol}.pdf"
     
     return Response(
         content=pdf_bytes,
