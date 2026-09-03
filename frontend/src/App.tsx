@@ -14,20 +14,20 @@ import { LandingAuthScreen } from './components/LandingAuthScreen';
 
 export const App: React.FC = () => {
   const { fetchSymbols, activeTab, error } = useTradeStore();
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isAuthenticated, isDemoMode, openAuthModal, checkAuth } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated || isDemoMode) {
       fetchSymbols();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isDemoMode]);
 
-  // Strict Authentication Guard: If user is not authenticated, render dedicated Auth Lock Screen
-  if (!isAuthenticated) {
+  // Authentication Guard: allow authenticated users and demo mode
+  if (!isAuthenticated && !isDemoMode) {
     return <LandingAuthScreen />;
   }
 
@@ -42,6 +42,19 @@ export const App: React.FC = () => {
       {/* Main Terminal Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-57px)] md:h-screen overflow-y-auto">
         <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
+          {/* Demo Mode Banner */}
+          {isDemoMode && (
+            <div className="p-2.5 bg-amber-950/40 border border-amber-500/40 rounded-xl text-amber-300 text-xs font-mono flex items-center justify-between">
+              <span>🔬 Demo Mode — Your results will not be saved.</span>
+              <button
+                onClick={() => openAuthModal('signup')}
+                className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-200 text-xs font-bold rounded-lg transition-all cursor-pointer"
+              >
+                Sign Up to Save
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 sm:p-4 bg-rose-950/40 border border-rose-500/40 rounded-xl text-rose-300 text-xs sm:text-sm flex items-center justify-between">
               <span><strong>Simulation Engine Error:</strong> {error}</span>

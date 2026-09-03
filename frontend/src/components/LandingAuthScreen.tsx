@@ -4,7 +4,7 @@ import { useThemeStore } from '../store/useThemeStore';
 import { LogIn, UserPlus, Mail, Lock, User as UserIcon, RefreshCw, Activity, Cpu, Sliders, Sun, Moon, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export const LandingAuthScreen: React.FC = () => {
-  const { signin, signup, isLoading, error } = useAuthStore();
+  const { signin, signup, enterDemoMode, isLoading, error } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [showPassword, setShowPassword] = useState(false);
@@ -235,6 +235,14 @@ export const LandingAuthScreen: React.FC = () => {
                     Sign In to Terminal
                   </>
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={enterDemoMode}
+                className="w-full py-3 mt-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-slate-100 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Activity className="w-4 h-4" />
+                Try the Demo — No Account Needed
               </button>
             </div>
           </form>

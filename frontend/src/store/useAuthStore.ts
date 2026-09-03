@@ -16,11 +16,14 @@ interface AuthState {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
+  isDemoMode: boolean;
   isAuthModalOpen: boolean;
   authMode: 'signin' | 'signup';
   isLoading: boolean;
   error: string | null;
 
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
   openAuthModal: (mode?: 'signin' | 'signup') => void;
   closeAuthModal: () => void;
   setAuthMode: (mode: 'signin' | 'signup') => void;
@@ -37,11 +40,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: localStorage.getItem(TOKEN_KEY),
   user: null,
   isAuthenticated: false,
+  isDemoMode: false,
   isAuthModalOpen: false,
   authMode: 'signin',
   isLoading: false,
   error: null,
 
+  enterDemoMode: () => set({ isDemoMode: true }),
+  exitDemoMode: () => set({ isDemoMode: false }),
   openAuthModal: (mode = 'signin') => set({ isAuthModalOpen: true, authMode: mode, error: null }),
   closeAuthModal: () => set({ isAuthModalOpen: false, error: null }),
   setAuthMode: (authMode) => set({ authMode, error: null }),
@@ -104,7 +110,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem(TOKEN_KEY);
     delete axios.defaults.headers.common['Authorization'];
-    set({ token: null, user: null, isAuthenticated: false });
+    set({ token: null, user: null, isAuthenticated: false, isDemoMode: false });
   },
 
   checkAuth: async () => {

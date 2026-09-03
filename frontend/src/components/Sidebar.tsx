@@ -16,7 +16,7 @@ export const Sidebar: React.FC = () => {
     isLoading
   } = useTradeStore();
 
-  const { user, isAuthenticated, logout, openAuthModal } = useAuthStore();
+  const { user, isAuthenticated, isDemoMode, logout, openAuthModal } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -99,14 +99,21 @@ export const Sidebar: React.FC = () => {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
+                const isDisabledInDemo = isDemoMode && item.id === 'history';
                 return (
                   <button
                     key={item.id}
                     onClick={() => {
+                      if (isDisabledInDemo) return;
                       setActiveTab(item.id as any);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold tracking-wide transition-all cursor-pointer ${
+                    title={isDisabledInDemo ? 'Sign up to save your trade history' : item.label}
+                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold tracking-wide transition-all ${
+                      isDisabledInDemo
+                        ? 'opacity-40 cursor-not-allowed'
+                        : 'cursor-pointer'
+                    } ${
                       isActive
                         ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold'
                         : 'text-slate-300 hover:bg-slate-900 border border-transparent'
@@ -114,6 +121,7 @@ export const Sidebar: React.FC = () => {
                   >
                     <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
                     <span>{item.label}</span>
+                    {isDisabledInDemo && <span className="text-[9px] text-amber-400 ml-auto">Sign up</span>}
                   </button>
                 );
               })}
@@ -222,11 +230,17 @@ export const Sidebar: React.FC = () => {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
+                const isDisabledInDemo = isDemoMode && item.id === 'history';
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id as any)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer ${
+                    onClick={() => !isDisabledInDemo && setActiveTab(item.id as any)}
+                    title={isDisabledInDemo ? 'Sign up to save your trade history' : item.label}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all ${
+                      isDisabledInDemo
+                        ? 'opacity-40 cursor-not-allowed'
+                        : 'cursor-pointer'
+                    } ${
                       isActive
                         ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-md shadow-cyan-500/10 font-bold'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
@@ -234,6 +248,7 @@ export const Sidebar: React.FC = () => {
                   >
                     <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
                     <span>{item.label}</span>
+                    {isDisabledInDemo && <span className="text-[9px] text-amber-400 ml-auto">Sign up</span>}
                   </button>
                 );
               })}
