@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: chronotrade-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    context: ./backend
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8080

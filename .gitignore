@@ -1,0 +1,16 @@
+# Dependencies & Environment
+node_modules/
+frontend/node_modules/
+frontend/dist/
+backend/venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.vercel/
+
+# Sensitive Environment Variables & Service Account Keys
+.env
+backend/.env
+firebase-key.json
+*-key.json
