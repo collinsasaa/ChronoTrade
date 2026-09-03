@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { LogIn, UserPlus, X, Mail, Lock, User as UserIcon, RefreshCw, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { LogIn, UserPlus, X, Mail, Lock, User as UserIcon, RefreshCw, ShieldCheck, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const {
@@ -30,6 +30,8 @@ export const AuthModal: React.FC = () => {
     }
   };
 
+  const isDuplicateAccountError = error && (error.toLowerCase().includes('already exists') || error.toLowerCase().includes('sign in'));
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6 relative overflow-hidden">
@@ -51,7 +53,7 @@ export const AuthModal: React.FC = () => {
 
           <button
             onClick={closeAuthModal}
-            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-900 transition-colors"
+            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-900 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -62,7 +64,7 @@ export const AuthModal: React.FC = () => {
           <button
             type="button"
             onClick={() => setAuthMode('signin')}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
               authMode === 'signin'
                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -74,7 +76,7 @@ export const AuthModal: React.FC = () => {
           <button
             type="button"
             onClick={() => setAuthMode('signup')}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
               authMode === 'signup'
                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -85,10 +87,28 @@ export const AuthModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Error Alert */}
+        {/* Error / Prompt Banner */}
         {error && (
-          <div className="p-3 bg-rose-950/40 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-mono relative z-10">
-            {error}
+          <div className={`p-3.5 rounded-xl border text-xs font-mono relative z-10 flex flex-col gap-2 ${
+            isDuplicateAccountError
+              ? 'bg-amber-950/40 border-amber-500/50 text-amber-300'
+              : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+          }`}>
+            <div className="flex items-start gap-2">
+              <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isDuplicateAccountError ? 'text-amber-400' : 'text-rose-400'}`} />
+              <span>{error}</span>
+            </div>
+
+            {isDuplicateAccountError && (
+              <button
+                type="button"
+                onClick={() => setAuthMode('signin')}
+                className="self-start mt-1 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-200 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Sign In to Existing Account
+              </button>
+            )}
           </div>
         )}
 
@@ -98,7 +118,7 @@ export const AuthModal: React.FC = () => {
             <div>
               <label className="text-xs font-semibold text-slate-400 block mb-1">Full Name</label>
               <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3" />
+                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <input
                   type="text"
                   required
@@ -141,7 +161,7 @@ export const AuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 text-slate-500 hover:text-slate-300 transition-colors p-1"
+                className="absolute right-3 text-slate-500 hover:text-slate-300 transition-colors p-1 cursor-pointer"
                 title={showPassword ? "Hide Password" : "Show Password"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
