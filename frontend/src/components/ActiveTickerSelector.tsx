@@ -171,7 +171,7 @@ export const ActiveTickerSelector: React.FC<ActiveTickerSelectorProps> = ({ comp
               <div className={`p-4 text-center text-xs font-semibold rounded-xl border ${
                 isDark ? 'text-slate-400 bg-slate-900/50 border-slate-800' : 'text-slate-600 bg-slate-50 border-slate-200'
               }`}>
-                No matching ticker symbols found.
+                {symbols.length === 0 ? "Loading symbols..." : "No matching ticker symbols found."}
               </div>
             ) : (
               filteredSymbols.map((s) => {

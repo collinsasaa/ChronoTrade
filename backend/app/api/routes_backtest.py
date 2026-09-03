@@ -99,13 +99,10 @@ def get_optional_user_id(authorization: Any) -> Optional[str]:
             return payload["sub"]
     return None
 
-@router.post("/run")
-def run_backtest(
-    req: BacktestRequest,
-    authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
-):
-    """Execute complete event-driven backtest simulation with institutional analytics."""
+import concurrent.futures
+
+def _run_simulation_core(req_dict: dict) -> dict:
+    req = BacktestRequest(**req_dict)
     if req.strategy_id == "strat_pairs" or "symbol_b" in req.strategy_params:
         symbol_a = req.strategy_params.get("symbol_a", req.symbol)
         symbol_b = req.strategy_params.get("symbol_b", "AAPL" if symbol_a != "AAPL" else "MSFT")
@@ -114,7 +111,7 @@ def run_backtest(
         data_df = get_ohlcv_data(req.symbol)
 
     if data_df.empty:
-        raise HTTPException(status_code=400, detail=f"No market data for ticker {req.symbol}")
+        raise ValueError(f"No market data for ticker {req.symbol}")
         
     bench_df = get_ohlcv_data("SPY")
     friction = parse_friction(req.friction)
@@ -138,6 +135,33 @@ def run_backtest(
         horizon_trades=min(len(result["trades"]) + 10, 50)
     )
     result["monte_carlo"] = mc_result
+    return result
+
+@router.post("/run")
+def run_backtest(
+    req: BacktestRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Execute complete event-driven backtest simulation with institutional analytics."""
+    if req.strategy_id == "strat_custom_python":
+        with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run_simulation_core, req.dict())
+            try:
+                result = future.result(timeout=10.0)
+            except concurrent.futures.TimeoutError:
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise HTTPException(status_code=400, detail="Custom strategy code exceeded the execution time limit (10s).")
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Custom strategy error: {str(e)}")
+    else:
+        try:
+            result = _run_simulation_core(req.dict())
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
 
     # If user is logged in, save trade execution log to database (SQLite)
     user_id = get_optional_user_id(authorization)

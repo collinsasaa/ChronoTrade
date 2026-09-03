@@ -53,3 +53,34 @@ def on_bar(h, c, ctx):
 """
     with pytest.raises(ValueError, match="While loops"):
         CustomCodeStrategy(code)
+
+def test_reject_large_range():
+    code = """
+def on_bar(h, c, ctx):
+    for i in range(10**8):
+        pass
+    return []
+"""
+    strat = CustomCodeStrategy(code)
+    history = pd.DataFrame({"close": [100.0]})
+    current_bar = {"symbol": "AAPL", "close": 100.0}
+    context = {}
+    # The range wrapper will raise ValueError, caught by the try-except in on_bar
+    signals = strat.on_bar(history, current_bar, context)
+    assert signals == []
+
+def test_fast_strategy_runs_successfully():
+    code = """
+def on_bar(h, c, ctx):
+    x = 0
+    for i in range(1000):
+        x += i
+    return [Signal(SignalType.BUY, symbol="AAPL", target_pct=0.5)]
+"""
+    strat = CustomCodeStrategy(code)
+    history = pd.DataFrame({"close": [100.0]})
+    current_bar = {"symbol": "AAPL", "close": 100.0}
+    context = {}
+    signals = strat.on_bar(history, current_bar, context)
+    assert len(signals) == 1
+    assert signals[0].signal_type == SignalType.BUY

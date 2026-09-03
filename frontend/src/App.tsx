@@ -45,6 +45,14 @@ export const App: React.FC = () => {
           {error && (
             <div className="p-3 sm:p-4 bg-rose-950/40 border border-rose-500/40 rounded-xl text-rose-300 text-xs sm:text-sm flex items-center justify-between">
               <span><strong>Simulation Engine Error:</strong> {error}</span>
+              {error.includes("Unable to load market symbol") && (
+                <button
+                  onClick={() => fetchSymbols()}
+                  className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/50 rounded font-bold transition-colors cursor-pointer"
+                >
+                  Retry
+                </button>
+              )}
             </div>
           )}
 

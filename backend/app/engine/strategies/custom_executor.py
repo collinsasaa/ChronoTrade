@@ -14,8 +14,16 @@ FORBIDDEN_BUILTINS = {
     "popen", "spawn", "fork", "exit", "quit", "memoryview", "super"
 }
 
+MAX_ITERATIONS = 10_000_000
+
+def safe_range(*args):
+    r = range(*args)
+    if len(r) > MAX_ITERATIONS:
+        raise ValueError(f"Range exceeds max allowed iterations of {MAX_ITERATIONS}")
+    return r
+
 SAFE_BUILTINS = {
-    "range": range, "len": len, "int": int, "float": float, "str": str,
+    "range": safe_range, "len": len, "int": int, "float": float, "str": str,
     "bool": bool, "list": list, "dict": dict, "set": set, "tuple": tuple,
     "abs": abs, "min": min, "max": max, "sum": sum, "round": round,
     "enumerate": enumerate, "zip": zip, "isinstance": isinstance,
