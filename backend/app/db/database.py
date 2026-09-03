@@ -1,5 +1,6 @@
 """
 ChronoTrade Database connection & ORM model definitions.
+Supports persistent database storage across container restarts via DATABASE_URL or DB_PATH.
 """
 
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, JSON
@@ -7,12 +8,24 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 import datetime
 import os
 
-DB_DIR = os.environ.get("PERSISTENT_DATA_DIR") or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
-os.makedirs(DB_DIR, exist_ok=True)
-DB_PATH = os.environ.get("SQLITE_DB_PATH") or os.path.join(DB_DIR, "chronotrade.db")
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+db_url = os.environ.get("DATABASE_URL")
+if db_url:
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URL = db_url
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+else:
+    db_path = os.environ.get("DB_PATH")
+    if not db_path:
+        if os.path.exists("/var/data"):
+            db_path = "/var/data/chronotrade.db"
+        else:
+            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "chronotrade.db")
+            
+    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{db_path}"
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

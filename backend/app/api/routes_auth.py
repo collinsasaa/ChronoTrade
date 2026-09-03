@@ -1,6 +1,6 @@
 """
 API Routes for User Sign Up, Sign In, and Current User Info.
-SQLite Database Persistence with rate limiting.
+SQLite Database Persistence with client-IP rate limiting.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Header, Request
@@ -14,7 +14,14 @@ from slowapi.util import get_remote_address
 from app.db.database import get_db, UserRecord
 from app.engine.auth import hash_password, verify_password, create_access_token, decode_access_token
 
-limiter = Limiter(key_func=get_remote_address)
+def get_client_ip(request: Request) -> str:
+    """Extract real client IP behind reverse proxy headers (e.g. Render / Cloudflare)."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return get_remote_address(request)
+
+limiter = Limiter(key_func=get_client_ip)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 class SignUpPayload(BaseModel):
@@ -44,7 +51,7 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
 
     existing = db.query(UserRecord).filter(UserRecord.email == email_clean).first()
     if existing:
-        raise HTTPException(status_code=400, detail="An account with this email address already exists.")
+        raise HTTPException(status_code=400, detail="An account with this email address already exists. Please sign in.")
         
     user_obj = UserRecord(
         id=user_id,
@@ -72,14 +79,17 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
     }
 
 @router.post("/signin", response_model=AuthResponse)
-@limiter.limit("5/minute")
+@limiter.limit("15/minute")
 def sign_in(request: Request, payload: SignInPayload, db: Session = Depends(get_db)):
     """Authenticate credentials and return JWT access token."""
     email_clean = payload.email.strip().lower()
     
     user = db.query(UserRecord).filter(UserRecord.email == email_clean).first()
-    if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if not user:
+        raise HTTPException(status_code=401, detail="Account not found. If the server restarted, please register your account again.")
+        
+    if not verify_password(payload.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid password. Please check your password and try again.")
         
     user_id = user.id
     user_info = {
@@ -113,7 +123,7 @@ def get_me(authorization: Optional[str] = Header(None), db: Session = Depends(ge
     
     user = db.query(UserRecord).filter(UserRecord.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User account not found.")
+        raise HTTPException(status_code=404, detail="User account not found or server database restarted.")
         
     return {
         "id": user.id,
