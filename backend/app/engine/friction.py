@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Any, Optional, Tuple, List
 import math
+import pandas as pd
 
 class SlippageModel(str, Enum):
     FIXED = "fixed"
