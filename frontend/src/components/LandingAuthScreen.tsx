@@ -251,7 +251,7 @@ export const LandingAuthScreen: React.FC = () => {
 
       {/* Footer */}
       <footer className="max-w-7xl w-full mx-auto text-center text-xs text-slate-500 font-mono pt-8 border-t border-slate-900/60 z-10">
-        ChronoTrade Quant Engine v1.0 — Algorithmic Trading & Institutional Risk Simulator
+        Algorithmic Trading & Institutional Risk Simulator
       </footer>
     </div>
   );

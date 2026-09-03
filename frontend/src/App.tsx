@@ -78,13 +78,6 @@ export const App: React.FC = () => {
           {activeTab === 'history' && <UserTradeActivity />}
         </main>
 
-        {/* Terminal Footer */}
-        <footer className="border-t border-slate-900 bg-slate-950/80 py-3 sm:py-4 px-4 sm:px-8 mt-auto text-[10px] sm:text-xs text-slate-500 font-mono">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-center md:text-left">
-            <span>ChronoTrade Quant Engine v1.0</span>
-            <span>FastAPI Engine + React Terminal</span>
-          </div>
-        </footer>
       </div>
     </div>
   );
