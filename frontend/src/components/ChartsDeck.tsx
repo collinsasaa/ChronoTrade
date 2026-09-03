@@ -51,8 +51,8 @@ export const ChartsDeck: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Chart Selector Tabs */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full scrollbar-none pb-1 sm:pb-0">
           {[
             { id: 'equity', label: 'Equity Curve vs Benchmark', icon: TrendingUp },
             { id: 'price', label: 'Price & Execution Markers', icon: Activity },
@@ -66,7 +66,7 @@ export const ChartsDeck: React.FC = () => {
               <button
                 key={btn.id}
                 onClick={() => setChartMode(btn.id as any)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                   isActive
                     ? 'bg-cyan-500/20 text-cyan-500 border border-cyan-500/40 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
@@ -78,13 +78,13 @@ export const ChartsDeck: React.FC = () => {
             );
           })}
         </div>
-        <span className="text-xs text-slate-500 font-mono hidden md:inline">
+        <span className="text-[11px] text-slate-500 font-mono hidden md:inline">
           {chart_data.length} Bars | {trades.length} Executed Trades
         </span>
       </div>
 
       {/* Main Chart Area */}
-      <div className="h-[420px] w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 relative shadow-xl">
+      <div className="h-[280px] sm:h-[360px] md:h-[420px] w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-2 sm:p-4 relative shadow-xl">
         {chartMode === 'equity' && (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={priceData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>

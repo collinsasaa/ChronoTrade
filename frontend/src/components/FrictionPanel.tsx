@@ -49,9 +49,9 @@ export const FrictionPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Controls Panel */}
-        <div className="md:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-6">
+        <div className="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-6">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-800 pb-3 flex items-center justify-between">
             <span>Friction Configuration</span>
             <span className="text-amber-400 text-xs font-mono">Active Model: {frictionConfig.broker_profile}</span>
@@ -60,7 +60,7 @@ export const FrictionPanel: React.FC = () => {
           {/* Broker Profile Presets */}
           <div>
             <label className="text-xs font-semibold text-slate-400 block mb-2">Broker Fee Profile Presets</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { id: 'interactive_brokers', label: 'Interactive Brokers', sub: 'Tiered per-share + exchange' },
                 { id: 'zero_fee', label: 'Zero-Commission Retail', sub: '$0 flat + wider spread/slippage' },

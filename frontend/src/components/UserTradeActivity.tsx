@@ -85,7 +85,7 @@ export const UserTradeActivity: React.FC = () => {
 
       {/* Account Performance Summary Cards */}
       {tradeHistory && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
             <div className="text-xs text-slate-400 font-semibold uppercase">Total Executed Trades</div>
             <div className="text-2xl font-mono font-bold text-slate-100 mt-1">

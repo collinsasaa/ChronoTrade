@@ -54,9 +54,9 @@ export const WalkForwardOptimization: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Controls */}
-        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-6">
+        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-6">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-800 pb-3">
             Parameter Sweep Config
           </h3>
@@ -139,7 +139,7 @@ export const WalkForwardOptimization: React.FC = () => {
         </div>
 
         {/* Heatmap & Matrix Display */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           {/* Grid Search Heatmap */}
           {gridSearchResult ? (
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-4">

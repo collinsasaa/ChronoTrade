@@ -20,7 +20,7 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Risk & Performance Summary Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <MetricCard
           label="Cumulative Return"
           value={`${summary.cumulative_return_pct.toFixed(2)}%`}
@@ -77,7 +77,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Secondary Metric Strip: Alpha, Beta, Win Rate, Profit Factor, Expectancy */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 bg-slate-950 p-3 sm:p-4 rounded-2xl border border-slate-800">
         <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800">
           <span className="text-[10px] uppercase font-bold text-slate-400">Alpha vs SPY</span>
           <div className="text-lg font-mono font-bold text-cyan-400 mt-1">

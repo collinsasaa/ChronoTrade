@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Activity, Play, Sliders, RefreshCw, BarChart2, Cpu, Layers, Radio, LogOut, LogIn, UserPlus, Sun, Moon, HelpCircle, History
+  Activity, Play, Sliders, RefreshCw, BarChart2, Cpu, Layers, Radio, LogOut, LogIn, UserPlus, Sun, Moon, HelpCircle, History, Menu, X
 } from 'lucide-react';
 import { useTradeStore } from '../store/useTradeStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -51,6 +51,7 @@ export const Sidebar: React.FC = () => {
   const { theme, toggleTheme } = useThemeStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Analytics', icon: BarChart2 },
@@ -64,7 +65,173 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between p-4 h-screen sticky top-0 z-40 flex-shrink-0">
+      {/* ================= MOBILE TOP HEADER BAR (Shown on screens < md) ================= */}
+      <header className="md:hidden sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center font-bold text-slate-950 text-sm shadow-md shadow-emerald-500/20">
+            CT
+          </div>
+          <div>
+            <h1 className="text-xs font-black tracking-wider text-slate-100 uppercase flex items-center gap-1">
+              ChronoTrade <span className="text-[8px] bg-cyan-500/20 text-cyan-400 px-1 py-0.5 rounded border border-cyan-500/30">LAB</span>
+            </h1>
+          </div>
+        </div>
+
+        {/* Ticker Selector + Quick Action + Hamburger */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 max-w-[130px]">
+            <Activity className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mr-1" />
+            <select
+              value={selectedSymbol}
+              onChange={(e) => setSelectedSymbol(e.target.value)}
+              className="bg-transparent text-xs font-mono font-bold text-slate-200 focus:outline-none w-full cursor-pointer truncate"
+            >
+              {orderedCategories.map((category) => (
+                <optgroup key={category} label={category}>
+                  {groupedSymbols[category].map((s) => (
+                    <option key={s.symbol} value={s.symbol} className="bg-slate-900 text-slate-200">
+                      {s.symbol} — {s.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => runBacktest()}
+            disabled={isLoading}
+            className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold active:scale-95 transition-all shadow-md shadow-emerald-500/20"
+            title="Run Simulation"
+          >
+            {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-slate-950" />}
+          </button>
+
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-slate-100 transition-colors"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5 text-rose-400" /> : <Menu className="w-5 h-5 text-slate-300" />}
+          </button>
+        </div>
+      </header>
+
+      {/* ================= MOBILE SLIDE-OVER DRAWER (Shown when hamburger toggled) ================= */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-between p-4 animate-in fade-in duration-200">
+          <div className="space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center font-bold text-slate-950 text-sm">
+                  CT
+                </div>
+                <span className="font-black text-sm text-slate-100 uppercase tracking-wider">Navigation Menu</span>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <nav className="space-y-1.5 overflow-y-auto max-h-[60vh] pr-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveTab(item.id as any);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold tracking-wide transition-all ${
+                      isActive
+                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold'
+                        : 'text-slate-300 hover:bg-slate-900 border border-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="space-y-3 pt-4 border-t border-slate-900">
+            <button
+              onClick={() => {
+                setShowGuideModal(true);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold rounded-xl"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span>Beginner Guide</span>
+            </button>
+
+            <button
+              onClick={toggleTheme}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold"
+            >
+              <span className="flex items-center gap-2">
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-cyan-400" />}
+                <span>Theme Mode</span>
+              </span>
+              <span className="text-[10px] font-mono uppercase text-slate-500">{theme}</span>
+            </button>
+
+            {isAuthenticated && user ? (
+              <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs">
+                <div className="flex items-center gap-2 truncate">
+                  <div className="w-7 h-7 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                    {user.full_name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="truncate font-semibold text-slate-200">{user.full_name}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-3 py-1 bg-rose-950/40 border border-rose-500/30 text-rose-400 text-xs font-semibold rounded-lg"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    openAuthModal('signin');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex-1 py-2.5 bg-slate-900 border border-slate-800 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1"
+                >
+                  <LogIn className="w-4 h-4 text-cyan-400" />
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    openAuthModal('signup');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex-1 py-2.5 bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-1"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Register
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= DESKTOP VERTICAL SIDEBAR (Shown on screens >= md) ================= */}
+      <aside className="hidden md:flex w-64 bg-slate-950 border-r border-slate-800 flex-col justify-between p-4 h-screen sticky top-0 z-40 flex-shrink-0">
         {/* Top: Brand & Symbol Selector */}
         <div className="space-y-6">
           <div className="flex items-center gap-3">

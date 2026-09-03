@@ -87,7 +87,7 @@ export const StrategyBuilder: React.FC = () => {
       </div>
 
       {mode === 'visual' ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Strategy Template List */}
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
@@ -117,7 +117,7 @@ export const StrategyBuilder: React.FC = () => {
           </div>
 
           {/* Parameters & Risk Controls Panel */}
-          <div className="md:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-6">
+          <div className="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200 border-b border-slate-800 pb-3 flex items-center justify-between">
               <span>Strategy Hyperparameters</span>
               <span className="text-xs text-cyan-400 font-mono">ID: {selectedStrategyId}</span>
