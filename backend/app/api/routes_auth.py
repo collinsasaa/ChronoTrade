@@ -1,17 +1,20 @@
 """
 API Routes for User Sign Up, Sign In, and Current User Info.
-SQLite Database Persistence.
+SQLite Database Persistence with rate limiting.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 import uuid
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.db.database import get_db, UserRecord
 from app.engine.auth import hash_password, verify_password, create_access_token, decode_access_token
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 class SignUpPayload(BaseModel):
@@ -69,7 +72,8 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
     }
 
 @router.post("/signin", response_model=AuthResponse)
-def sign_in(payload: SignInPayload, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def sign_in(request: Request, payload: SignInPayload, db: Session = Depends(get_db)):
     """Authenticate credentials and return JWT access token."""
     email_clean = payload.email.strip().lower()
     
