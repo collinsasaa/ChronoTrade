@@ -164,7 +164,7 @@ class EventDrivenSimulator:
                             tp_price = close_px * (1.0 + sig.take_profit_pct / 100.0)
                             tp_order = Order(
                                 id=f"{ord_id}_tp", symbol=symbol, side=OrderSide.SELL,
-                                order_type=OrderType.TAKE_PROFIT, quantity=tp_price,
+                                order_type=OrderType.TAKE_PROFIT, quantity=qty,
                                 limit_price=tp_price, created_bar_idx=bar_idx
                             )
                             pending_orders.append(tp_order)
