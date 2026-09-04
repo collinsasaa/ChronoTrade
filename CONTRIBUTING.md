@@ -69,7 +69,7 @@ ChronoTrade/
 │   │   ├── api/       # Route handlers
 │   │   ├── db/        # Database models & sessions
 │   │   └── engine/    # Simulation, strategies, analytics
-│   ├── data/          # Cached OHLCV CSVs (ephemeral on Render)
+│   ├── data/          # Local cached OHLCV CSVs
 │   └── tests/         # pytest test suite
 ├── frontend/          # React + TypeScript + Vite
 │   └── src/
@@ -80,5 +80,5 @@ ChronoTrade/
 
 ## Notes
 
-- The backend's `backend/data/` directory stores cached OHLCV CSV files. On Render's free tier, this cache resets on each deploy since the filesystem is ephemeral. This is best-effort caching, not a substitute for a persistent data store.
+- The backend's `backend/data/` directory stores cached OHLCV CSV files locally. This is best-effort caching and can be deleted safely to force a refresh.
 - Custom strategy code runs in a sandboxed process with a 10-second wall-clock timeout and a 10M iteration cap on `range()`.

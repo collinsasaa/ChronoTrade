@@ -15,7 +15,7 @@ from app.db.database import get_db, UserRecord, backup_user
 from app.engine.auth import hash_password, verify_password, create_access_token, decode_access_token
 
 def get_client_ip(request: Request) -> str:
-    """Extract real client IP behind reverse proxy headers (e.g. Render / Cloudflare)."""
+    """Extract the client IP from the local request."""
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         return forwarded.split(",")[0].strip()

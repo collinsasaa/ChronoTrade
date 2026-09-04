@@ -20,7 +20,7 @@ ChronoTrade is a high-performance, web-based quantitative backtesting engine and
 
 * **Frontend:** React 19, TypeScript, Vite 8, Tailwind CSS 4, Zustand 5, Recharts, Monaco Editor (`@monaco-editor/react`), KaTeX.
 * **Backend:** Python 3.11, FastAPI, Uvicorn, Pandas, NumPy, SciPy, Scikit-Learn, Statsmodels, yFinance, SQLAlchemy (SQLite), Passlib / bcrypt.
-* **Deployment:** Vercel Global Edge CDN (Frontend) & Docker Container on Render.com (Backend).
+* **Runtime:** Local Vite development server (Frontend) and FastAPI/Uvicorn server (Backend).
 
 ---
 
@@ -76,15 +76,14 @@ The frontend application will be running live at `http://localhost:3000`.
 
 ## 🔑 Environment Variables Reference
 
-Refer to [`backend/.env.example`](backend/.env.example) for backend configuration options:
+Refer to [`backend/.env.example`](backend/.env.example) for local backend configuration options:
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `SECRET_KEY` | JWT signing secret key (Required in production) | Dev fallback key |
-| `ENVIRONMENT` | Deployment environment (`production` / `development`) | `development` |
-| `CORS_ORIGINS` | Comma-separated list of allowed CORS frontend origins | `http://localhost:3000,http://127.0.0.1:3000,https://chronotrade.vercel.app` |
+| `SECRET_KEY` | JWT signing secret key for local development | Local development key |
+| `ENVIRONMENT` | Runtime environment | `development` |
+| `CORS_ORIGINS` | Comma-separated list of allowed local frontend origins | `http://localhost:3000,http://127.0.0.1:3000` |
 | `PORT` | Server listening port | `8000` |
-| `VITE_API_BASE_URL` | Frontend API base URL (Vite build) | Empty (uses local proxy) |
 
 ---
 
@@ -99,18 +98,9 @@ python -m pytest tests -v
 
 ---
 
-## 🌐 Production URLs
+## Local Data
 
-* **Live Frontend:** [https://chronotrade.vercel.app](https://chronotrade.vercel.app)
-* **Live API Backend:** [https://chronotrade-ss33.onrender.com](https://chronotrade-ss33.onrender.com)
-
----
-
-## ⚠️ Deployment Notes
-
-* **Ephemeral OHLCV Cache:** The `backend/data/` directory stores cached OHLCV CSV files. On Render's free tier the filesystem is ephemeral — cache files reset on each deploy or container restart. This is best-effort caching, not a substitute for a persistent data store. A cache freshness TTL (default 24 hours, configurable via `CACHE_TTL_HOURS` env var) triggers automatic re-fetches from yfinance when data goes stale.
-* **Persistent Postgres DB:** User accounts and trading history are now stored in a managed Postgres database (provisioned via `render.yaml`). **Note:** Render's free Postgres tier expires after ~30 days. If you are deploying this for anything beyond a demo or course project, it is highly recommended to upgrade to a low-cost paid database tier. If deploying manually on Render (not via Blueprint), you must create a Postgres instance in the dashboard and set the `DATABASE_URL` environment variable on the web service to its Internal Connection String.
-* **Account Migration Note:** As part of the transition from ephemeral SQLite to persistent Postgres, existing accounts in the old SQLite file or JSON backups were not carried forward. All users must re-register a new account once.
+The `backend/data/` directory stores cached OHLCV CSV files locally. A cache freshness TTL (default 24 hours, configurable via `CACHE_TTL_HOURS`) triggers automatic re-fetches from yfinance when data goes stale.
 
 ---
 
