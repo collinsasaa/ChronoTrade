@@ -11,7 +11,7 @@ import uuid
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.db.database import get_db, UserRecord, backup_user
+from app.db.database import get_db, UserRecord
 from app.engine.auth import hash_password, verify_password, create_access_token, decode_access_token
 
 def get_client_ip(request: Request) -> str:
@@ -46,7 +46,7 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
     if len(payload.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
         
-    hashed_pwd = hash_password(payload.password)
+    hashed_password = hash_password(payload.password)
     user_id = f"usr_{uuid.uuid4().hex[:12]}"
 
     existing = db.query(UserRecord).filter(UserRecord.email == email_clean).first()
@@ -57,13 +57,11 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
         id=user_id,
         email=email_clean,
         full_name=payload.full_name.strip(),
-        hashed_password=hashed_pwd
+        hashed_password=hashed_password
     )
     db.add(user_obj)
     db.commit()
     db.refresh(user_obj)
-    
-    backup_user(user_obj)
     
     user_dict = {
         "id": user_obj.id,
@@ -73,10 +71,7 @@ def sign_up(payload: SignUpPayload, db: Session = Depends(get_db)):
     }
     
     token = create_access_token({
-        "sub": user_id, 
-        "email": email_clean,
-        "full_name": user_obj.full_name,
-        "hashed_pwd": user_obj.hashed_password
+        "sub": user_id
     })
     
     return {
@@ -107,10 +102,7 @@ def sign_in(request: Request, payload: SignInPayload, db: Session = Depends(get_
     }
         
     token = create_access_token({
-        "sub": user_id, 
-        "email": email_clean,
-        "full_name": user.full_name,
-        "hashed_pwd": user.hashed_password
+        "sub": user_id
     })
     
     return {
@@ -133,27 +125,8 @@ def get_current_user_profile(authorization: Optional[str] = Header(None), db: Se
     user_id = payload.get("sub")
     user = db.query(UserRecord).filter(UserRecord.id == user_id).first()
     
-    # Self-healing logic for ephemeral serverless environments (e.g. SQLite fallback):
-    # If the DB was wiped by a container restart, but the user presents a valid,
-    # cryptographically signed JWT containing their account data, we seamlessly reconstruct 
-    # their account into the newly wiped DB.
     if not user:
-        if "email" in payload and "hashed_pwd" in payload:
-            try:
-                user = UserRecord(
-                    id=user_id,
-                    email=payload["email"],
-                    full_name=payload.get("full_name", "Quant Trader"),
-                    hashed_password=payload["hashed_pwd"]
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
-            except Exception as e:
-                db.rollback()
-                raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
-        else:
-            raise HTTPException(status_code=401, detail="Account not found. If the server restarted, please register your account again.")
+        raise HTTPException(status_code=401, detail="Account not found. Please sign in again.")
         
     return {
         "id": user.id,

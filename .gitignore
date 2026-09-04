@@ -12,6 +12,7 @@ __pycache__/
 # Sensitive Environment Variables & Service Account Keys
 .env
 backend/.env
+backend/data/users_backup.json
 firebase-key.json
 *-key.json
 
