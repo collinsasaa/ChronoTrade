@@ -3,7 +3,7 @@ API & WebSocket routes for Backtesting, Walk-Forward, Grid Search, Monte Carlo, 
 Supports Firestore & SQLite dual persistence.
 """
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header, Request
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
@@ -29,6 +29,7 @@ from app.engine.strategies.pairs_trading import PairsTradingStrategy
 from app.engine.strategies.portfolio_opt import MarkowitzPortfolioStrategy
 from app.engine.strategies.ml_strategy import MLPredictorStrategy
 from app.engine.strategies.custom_executor import CustomCodeStrategy
+from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/api/backtest", tags=["Backtesting"])
 
@@ -171,8 +172,10 @@ def _run_simulation_core(req_dict: dict) -> dict:
     return result
 
 @router.post("/run")
+@limiter.limit("15/minute")
 def run_backtest(
     req: BacktestRequest,
+    request: Request,
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
