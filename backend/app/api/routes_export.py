@@ -2,7 +2,7 @@
 Export API Routes: Generates institutional PDF performance reports and downloadable CSV trade logs.
 """
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import io
@@ -12,6 +12,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from app.engine.auth import decode_access_token
 
 router = APIRouter(prefix="/api/export", tags=["Export"])
 
@@ -28,8 +29,20 @@ def sanitize_filename(val: str) -> str:
     cleaned = re.sub(r'[^A-Za-z0-9_-]', '_', val)
     return re.sub(r'_+', '_', cleaned).strip('_') or "export"
 
+
+def require_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
+    """Allow report downloads only for users with a valid JWT."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required to download reports.")
+
+    token = authorization.removeprefix("Bearer ").strip()
+    payload = decode_access_token(token)
+    if not payload or not payload.get("sub"):
+        raise HTTPException(status_code=401, detail="Authentication required to download reports.")
+    return payload["sub"]
+
 @router.post("/csv")
-def export_csv(payload: ExportPayload):
+def export_csv(payload: ExportPayload, _: str = Depends(require_authenticated_user)):
     """Generates and returns downloadable CSV trade log."""
     output = io.StringIO()
     writer = csv.writer(output)
@@ -70,7 +83,7 @@ def export_csv(payload: ExportPayload):
     )
 
 @router.post("/pdf")
-def export_pdf(payload: ExportPayload):
+def export_pdf(payload: ExportPayload, _: str = Depends(require_authenticated_user)):
     """Generates an institutional PDF performance report using ReportLab."""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)

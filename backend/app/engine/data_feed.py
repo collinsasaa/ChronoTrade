@@ -20,6 +20,18 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__
 CACHE_TTL_HOURS = int(os.environ.get("CACHE_TTL_HOURS", "24"))
 
 
+def _clean_ohlcv_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove rows with missing or non-numeric OHLCV values."""
+    required_columns = ["open", "high", "low", "close", "volume"]
+    if df.empty or any(column not in df.columns for column in required_columns):
+        return pd.DataFrame()
+
+    cleaned = df.copy()
+    for column in required_columns:
+        cleaned[column] = pd.to_numeric(cleaned[column], errors="coerce")
+    return cleaned.dropna(subset=required_columns).reset_index(drop=True)
+
+
 def _get_cache_meta_path(symbol: str) -> str:
     """Return the path to the cache metadata JSON file for a symbol."""
     return os.path.join(DATA_DIR, f"{symbol.upper()}.meta.json")
@@ -184,7 +196,7 @@ def get_ohlcv_data(symbol: str, force_refresh: bool = False) -> pd.DataFrame:
         if not stale:
             # Fresh cache — serve directly
             try:
-                df = pd.read_csv(cache_path)
+                df = _clean_ohlcv_data(pd.read_csv(cache_path))
                 if not df.empty and "close" in df.columns:
                     return df
             except Exception:
@@ -198,7 +210,7 @@ def get_ohlcv_data(symbol: str, force_refresh: bool = False) -> pd.DataFrame:
             # yfinance failed — serve stale cache with a warning
             logger.warning(f"yfinance refresh failed for {symbol}, serving stale cache")
             try:
-                df = pd.read_csv(cache_path)
+                df = _clean_ohlcv_data(pd.read_csv(cache_path))
                 if not df.empty and "close" in df.columns:
                     return df
             except Exception:

@@ -39,6 +39,45 @@ def test_take_profit_order_quantity_regression():
     for tp in tp_orders:
         assert tp["qty"] < 1000.0  # Quantity should be share position size (e.g. ~100 shares), NOT tp_price (e.g. $10000+)
 
+def test_empty_market_data_is_rejected():
+    strategy = MACrossoverStrategy({"fast_period": 5, "slow_period": 15})
+    sim = EventDrivenSimulator(strategy, pd.DataFrame())
+
+    with pytest.raises(ValueError, match="empty market data"):
+        sim.run()
+
+def test_exit_orders_cannot_over_sell_position():
+    data_df = pd.DataFrame([
+        {"date": "1", "open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 100000},
+        {"date": "2", "open": 100.0, "high": 102.0, "low": 98.0, "close": 100.0, "volume": 100000},
+    ])
+
+    class BracketStrategy(Strategy):
+        def __init__(self):
+            super().__init__("Bracket", {})
+            self.has_entered = False
+
+        def on_bar(self, history, current_bar, context):
+            if not self.has_entered:
+                self.has_entered = True
+                return [Signal(
+                    SignalType.BUY,
+                    symbol="ASSET",
+                    target_pct=1.0,
+                    stop_loss_pct=1.0,
+                    take_profit_pct=1.0,
+                )]
+            return []
+
+    result = EventDrivenSimulator(
+        BracketStrategy(),
+        data_df,
+        friction_config=FrictionConfig(spread_bps=0, slippage_bps=0, commission_flat=0),
+    ).run()
+
+    assert len(result["trades"]) == 1
+    assert result["trades"][0]["qty"] <= 100.0
+
 def test_event_driven_simulator_ma_crossover():
     data_df = generate_synthetic_ohlcv("AAPL", num_bars=200)
     strat = MACrossoverStrategy({"fast_period": 5, "slow_period": 15})

@@ -38,6 +38,9 @@ class EventDrivenSimulator:
         self.data_feed = RollingWindowDataFeed(self.data_df)
         
     def run(self) -> Dict[str, Any]:
+        if self.data_df.empty:
+            raise ValueError("Cannot run a backtest with empty market data")
+
         cash = self.initial_capital
         position_shares = 0.0
         entry_price = 0.0
@@ -62,6 +65,12 @@ class EventDrivenSimulator:
             # Process pending orders against current bar
             remaining_pending = []
             for order in pending_orders:
+                if order.side == OrderSide.SELL and position_shares <= 0:
+                    order.status = OrderStatus.CANCELLED
+                    continue
+                if order.side == OrderSide.SELL:
+                    order.quantity = min(order.quantity, position_shares + order.filled_quantity)
+
                 fill, updated_order = process_order_execution(
                     order, current_bar, bar_idx, self.friction_config
                 )

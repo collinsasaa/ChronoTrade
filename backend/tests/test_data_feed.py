@@ -106,3 +106,23 @@ def test_failed_refresh_serves_stale_cache(tmp_data_dir):
     assert not result.empty
     assert result["close"].iloc[0] == 103.0
     assert len(result) == 3
+
+
+def test_malformed_cached_rows_are_removed(tmp_data_dir):
+    """Cached rows with missing prices do not reach the simulator."""
+    symbol = "TESTMALFORMED"
+    cache_path = os.path.join(str(tmp_data_dir), f"{symbol}.csv")
+    pd.DataFrame([
+        {"date": "2026-09-02", "open": 100, "high": 101, "low": 99, "close": 100, "volume": 1000},
+        {"date": "2026-09-03", "open": None, "high": None, "low": None, "close": None, "volume": 1000},
+    ]).to_csv(cache_path, index=False)
+
+    meta_path = os.path.join(str(tmp_data_dir), f"{symbol}.meta.json")
+    with open(meta_path, "w") as f:
+        json.dump({"cached_at": datetime.datetime.utcnow().isoformat()}, f)
+
+    with patch("app.engine.data_feed._try_yfinance_fetch", side_effect=AssertionError("yfinance should not be called")):
+        result = get_ohlcv_data(symbol)
+
+    assert len(result) == 1
+    assert result["close"].iloc[0] == 100.0

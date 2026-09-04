@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useTradeStore } from '../store/useTradeStore';
 import { Download, FileText, Filter, ArrowUpDown, Clock } from 'lucide-react';
 import axios from 'axios';
+import { useAuthStore } from '../store/useAuthStore';
 
 export const TradeLogTable: React.FC = () => {
   const { backtestResult, selectedSymbol } = useTradeStore();
+  const { isAuthenticated } = useAuthStore();
   const [filterSide, setFilterSide] = useState<'all' | 'BUY' | 'SELL'>('all');
   const [sortField, setSortField] = useState<'entry_date' | 'pnl' | 'duration_bars'>('entry_date');
   const [sortAsc, setSortAsc] = useState(false);
@@ -94,24 +96,26 @@ export const TradeLogTable: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleDownloadCSV}
-            className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-cyan-400" />
-            CSV Log
-          </button>
+        {isAuthenticated && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadCSV}
+              className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-cyan-400" />
+              CSV Log
+            </button>
 
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            {isExporting ? 'Generating PDF...' : 'Download PDF Report'}
-          </button>
-        </div>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              {isExporting ? 'Generating PDF...' : 'Download PDF Report'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter Toolbar */}
