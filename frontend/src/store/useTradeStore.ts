@@ -101,6 +101,8 @@ interface TradeStoreState {
   strategyParams: Record<string, any>;
   customCode: string;
   initialCapital: number;
+  startDate: string;
+  endDate: string;
   frictionConfig: FrictionConfigState;
   
   backtestResult: BacktestResult | null;
@@ -122,6 +124,8 @@ interface TradeStoreState {
   setSelectedStrategyId: (id: string) => void;
   setStrategyParams: (params: Record<string, any>) => void;
   setCustomCode: (code: string) => void;
+  setStartDate: (date: string) => void;
+  setEndDate: (date: string) => void;
   setFrictionConfig: (config: Partial<FrictionConfigState>) => void;
   setActiveTab: (tab: any) => void;
   setReplayStep: (step: number) => void;
@@ -159,6 +163,8 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
         return [Signal(SignalType.SELL, symbol=current_bar.get('symbol', 'ASSET'), target_pct=0.0)]
     return []`,
   initialCapital: 10000,
+  startDate: '',
+  endDate: '',
   frictionConfig: {
     spread_bps: 5.0,
     slippage_model: 'fixed',
@@ -190,6 +196,22 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
   setSelectedStrategyId: (selectedStrategyId) => set({ selectedStrategyId }),
   setStrategyParams: (strategyParams) => set({ strategyParams }),
   setCustomCode: (customCode) => set({ customCode }),
+  setStartDate: (startDate) => set({
+    startDate,
+    backtestResult: null,
+    comparisonResults: [],
+    walkForwardResult: null,
+    gridSearchResult: null,
+    replayStep: 0
+  }),
+  setEndDate: (endDate) => set({
+    endDate,
+    backtestResult: null,
+    comparisonResults: [],
+    walkForwardResult: null,
+    gridSearchResult: null,
+    replayStep: 0
+  }),
   setFrictionConfig: (config) =>
     set((state) => ({ frictionConfig: { ...state.frictionConfig, ...config } })),
   setActiveTab: (activeTab) => set({ activeTab }),
@@ -212,13 +234,15 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
   runBacktest: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { selectedSymbol, selectedStrategyId, strategyParams, customCode, initialCapital, frictionConfig } = get();
+      const { selectedSymbol, selectedStrategyId, strategyParams, customCode, initialCapital, startDate, endDate, frictionConfig } = get();
       const payload = {
         symbol: selectedSymbol,
         strategy_id: selectedStrategyId,
         strategy_params: strategyParams,
         custom_code: customCode,
         initial_capital: initialCapital,
+        start_date: startDate || null,
+        end_date: endDate || null,
         friction: frictionConfig
       };
       const res = await axios.post('/api/backtest/run', payload);
@@ -231,13 +255,15 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
   runGridSearch: async (paramGrid) => {
     set({ isLoading: true, error: null });
     try {
-      const { selectedSymbol, selectedStrategyId, strategyParams, customCode, initialCapital, frictionConfig } = get();
+      const { selectedSymbol, selectedStrategyId, strategyParams, customCode, initialCapital, startDate, endDate, frictionConfig } = get();
       const payload = {
         symbol: selectedSymbol,
         strategy_id: selectedStrategyId,
         strategy_params: strategyParams,
         custom_code: customCode,
         initial_capital: initialCapital,
+        start_date: startDate || null,
+        end_date: endDate || null,
         friction: frictionConfig
       };
       const res = await axios.post('/api/backtest/grid-search', { req: payload, param_grid: paramGrid });
@@ -250,13 +276,15 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
   runWalkForward: async (paramGrid) => {
     set({ isLoading: true, error: null });
     try {
-      const { selectedSymbol, selectedStrategyId, strategyParams, customCode, initialCapital, frictionConfig } = get();
+      const { selectedSymbol, selectedStrategyId, strategyParams, customCode, initialCapital, startDate, endDate, frictionConfig } = get();
       const payload = {
         symbol: selectedSymbol,
         strategy_id: selectedStrategyId,
         strategy_params: strategyParams,
         custom_code: customCode,
         initial_capital: initialCapital,
+        start_date: startDate || null,
+        end_date: endDate || null,
         friction: frictionConfig
       };
       const res = await axios.post('/api/backtest/walk-forward', { req: payload, param_grid: paramGrid });
@@ -269,12 +297,14 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
   runComparison: async (strategyIds) => {
     set({ isLoading: true, error: null });
     try {
-      const { selectedSymbol, strategyParams, initialCapital, frictionConfig } = get();
+      const { selectedSymbol, strategyParams, initialCapital, startDate, endDate, frictionConfig } = get();
       const requests = strategyIds.map((sid) => ({
         symbol: selectedSymbol,
         strategy_id: sid,
         strategy_params: strategyParams,
         initial_capital: initialCapital,
+        start_date: startDate || null,
+        end_date: endDate || null,
         friction: frictionConfig
       }));
       const res = await axios.post('/api/backtest/compare', requests);

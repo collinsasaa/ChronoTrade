@@ -7,7 +7,7 @@ import { useThemeStore } from '../store/useThemeStore';
 import { TrendingUp, Activity, ShieldAlert, BarChart } from 'lucide-react';
 
 export const ChartsDeck: React.FC = () => {
-  const { backtestResult } = useTradeStore();
+  const { backtestResult, startDate, endDate } = useTradeStore();
   const { theme } = useThemeStore();
   const [chartMode, setChartMode] = useState<'price' | 'equity' | 'drawdown' | 'sharpe' | 'monte_carlo'>('equity');
 
@@ -32,17 +32,29 @@ export const ChartsDeck: React.FC = () => {
   const tooltipBorder = isDark ? '#334155' : '#CBD5E1';
   const tooltipText = isDark ? '#F8FAFC' : '#0F172A';
 
-  const priceData = chart_data.map((d, i) => {
-    const buyTrade = trades.find(t => t.entry_bar === i);
-    const sellTrade = trades.find(t => t.exit_bar === i);
+  const scopedChartData = chart_data
+    .map((data, originalIndex) => ({ data, originalIndex }))
+    .filter(({ data }) => {
+      const date = String(data.date).slice(0, 10);
+      return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+    });
+  const scopedTrades = trades.filter((trade) => {
+    const entryDate = String(trade.entry_date).slice(0, 10);
+    const exitDate = String(trade.exit_date).slice(0, 10);
+    return (!startDate || entryDate >= startDate) && (!endDate || exitDate <= endDate);
+  });
+
+  const priceData = scopedChartData.map(({ data: d, originalIndex }) => {
+    const buyTrade = trades.find(t => t.entry_bar === originalIndex);
+    const sellTrade = trades.find(t => t.exit_bar === originalIndex);
 
     return {
       date: d.date,
       close: d.close,
       equity: d.equity,
       benchmark: d.benchmark,
-      drawdown: (drawdown_series[i] || 0) * 100,
-      rolling_sharpe: rolling_sharpe[i] || 0,
+      drawdown: (drawdown_series[originalIndex] || 0) * 100,
+      rolling_sharpe: rolling_sharpe[originalIndex] || 0,
       buyPrice: buyTrade ? d.close : null,
       sellPrice: sellTrade ? d.close : null
     };
@@ -79,7 +91,7 @@ export const ChartsDeck: React.FC = () => {
           })}
         </div>
         <span className="text-[11px] text-slate-500 font-mono hidden md:inline">
-          {chart_data.length} Bars | {trades.length} Executed Trades
+          {priceData.length} Bars | {scopedTrades.length} Executed Trades
         </span>
       </div>
 

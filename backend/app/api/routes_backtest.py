@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 import asyncio
 import json
 import uuid
+import datetime
+import pandas as pd
 
 from app.db.database import get_db, TradeHistoryRecord, UserRecord
 from app.engine.auth import decode_access_token
@@ -50,6 +52,36 @@ class BacktestRequest(BaseModel):
     custom_code: Optional[str] = None
     initial_capital: float = 10000.0
     friction: Optional[FrictionPayload] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
+def apply_timeframe(data_df: pd.DataFrame, start_date: Optional[str], end_date: Optional[str]) -> pd.DataFrame:
+    """Return rows inside the requested inclusive date range."""
+    if data_df.empty or (not start_date and not end_date):
+        return data_df
+    if "date" not in data_df.columns:
+        raise ValueError("Market data is missing dates")
+
+    dates = pd.to_datetime(data_df["date"], errors="coerce")
+    if dates.isna().any():
+        raise ValueError("Market data contains invalid dates")
+    try:
+        start = pd.Timestamp(start_date) if start_date else dates.min()
+        end = pd.Timestamp(end_date) if end_date else dates.max()
+    except (TypeError, ValueError):
+        raise ValueError("Invalid simulation timeframe")
+    if start > end:
+        raise ValueError("Simulation start date must be on or before the end date")
+    if start.normalize() > pd.Timestamp(datetime.date.today()):
+        raise ValueError("Simulation dates cannot be in the future")
+    if end.normalize() > pd.Timestamp(datetime.date.today()):
+        raise ValueError("Simulation dates cannot be in the future")
+
+    filtered = data_df.loc[(dates >= start) & (dates <= end)].reset_index(drop=True)
+    if filtered.empty:
+        raise ValueError("No market data is available for the selected timeframe")
+    return filtered
 
 def parse_friction(payload: Optional[FrictionPayload]) -> FrictionConfig:
     if not payload:
@@ -110,10 +142,11 @@ def _run_simulation_core(req_dict: dict) -> dict:
     else:
         data_df = get_ohlcv_data(req.symbol)
 
+    data_df = apply_timeframe(data_df, req.start_date, req.end_date)
     if data_df.empty:
         raise ValueError(f"No market data for ticker {req.symbol}")
         
-    bench_df = get_ohlcv_data("SPY")
+    bench_df = apply_timeframe(get_ohlcv_data("SPY"), req.start_date, req.end_date)
     friction = parse_friction(req.friction)
     strategy = instantiate_strategy(req.strategy_id, req.strategy_params, req.custom_code)
     
@@ -278,6 +311,7 @@ def compare_strategies(
             "strategy_id": req.strategy_id,
             "strategy_name": res["strategy_name"],
             "symbol": req.symbol,
+            "dates": [row["date"] for row in res["chart_data"]],
             "analytics": res["analytics"]["summary"],
             "equity_curve": res["equity_curve"],
             "trade_stats": res["analytics"]["trade_statistics"]
@@ -287,7 +321,7 @@ def compare_strategies(
 @router.post("/grid-search")
 def execute_grid_search(req: BacktestRequest, param_grid: Dict[str, List[Any]]):
     """Execute 2D parameter grid search sweep."""
-    data_df = get_ohlcv_data(req.symbol)
+    data_df = apply_timeframe(get_ohlcv_data(req.symbol), req.start_date, req.end_date)
     friction = parse_friction(req.friction)
     
     def factory(p):
@@ -298,7 +332,7 @@ def execute_grid_search(req: BacktestRequest, param_grid: Dict[str, List[Any]]):
 @router.post("/walk-forward")
 def execute_walk_forward(req: BacktestRequest, param_grid: Dict[str, List[Any]]):
     """Execute Walk-Forward Optimization with train/test rolling windows."""
-    data_df = get_ohlcv_data(req.symbol)
+    data_df = apply_timeframe(get_ohlcv_data(req.symbol), req.start_date, req.end_date)
     friction = parse_friction(req.friction)
     
     def factory(p):
@@ -318,9 +352,11 @@ async def websocket_replay_stream(websocket: WebSocket):
         strategy_id = params.get("strategy_id", "strat_ma_crossover")
         strat_params = params.get("strategy_params", {})
         delay_ms = params.get("delay_ms", 100)
+        start_date = params.get("start_date")
+        end_date = params.get("end_date")
         
-        data_df = get_ohlcv_data(symbol)
-        bench_df = get_ohlcv_data("SPY")
+        data_df = apply_timeframe(get_ohlcv_data(symbol), start_date, end_date)
+        bench_df = apply_timeframe(get_ohlcv_data("SPY"), start_date, end_date)
         strategy = instantiate_strategy(strategy_id, strat_params)
         
         sim = EventDrivenSimulator(

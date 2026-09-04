@@ -12,6 +12,7 @@ from app.engine.data_feed import (
     get_ohlcv_data, _is_cache_stale, _write_cache_meta,
     _get_cache_meta_path, DATA_DIR
 )
+from app.api.routes_backtest import apply_timeframe
 
 
 @pytest.fixture
@@ -126,3 +127,29 @@ def test_malformed_cached_rows_are_removed(tmp_data_dir):
 
     assert len(result) == 1
     assert result["close"].iloc[0] == 100.0
+
+
+def test_apply_timeframe_is_inclusive():
+    data = pd.DataFrame({
+        "date": ["2026-01-01", "2026-01-02", "2026-01-03"],
+        "close": [100, 101, 102],
+    })
+
+    result = apply_timeframe(data, "2026-01-02", "2026-01-03")
+
+    assert result["date"].tolist() == ["2026-01-02", "2026-01-03"]
+
+
+def test_apply_timeframe_rejects_reversed_dates():
+    data = pd.DataFrame({"date": ["2026-01-01"], "close": [100]})
+
+    with pytest.raises(ValueError, match="on or before"):
+        apply_timeframe(data, "2026-01-03", "2026-01-01")
+
+
+def test_apply_timeframe_rejects_future_dates():
+    data = pd.DataFrame({"date": ["2026-01-01"], "close": [100]})
+    future_date = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+    with pytest.raises(ValueError, match="cannot be in the future"):
+        apply_timeframe(data, "2026-01-01", future_date)

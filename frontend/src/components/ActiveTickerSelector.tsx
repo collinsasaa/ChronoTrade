@@ -3,12 +3,14 @@ import { Activity, Search, ChevronDown, Check, Sparkles } from 'lucide-react';
 import { useTradeStore } from '../store/useTradeStore';
 import { useThemeStore } from '../store/useThemeStore';
 
+const today = new Date().toISOString().slice(0, 10);
+
 interface ActiveTickerSelectorProps {
   compact?: boolean;
 }
 
 export const ActiveTickerSelector: React.FC<ActiveTickerSelectorProps> = ({ compact = false }) => {
-  const { symbols, selectedSymbol, setSelectedSymbol } = useTradeStore();
+  const { symbols, selectedSymbol, setSelectedSymbol, startDate, endDate, setStartDate, setEndDate } = useTradeStore();
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
 
@@ -108,6 +110,46 @@ export const ActiveTickerSelector: React.FC<ActiveTickerSelectorProps> = ({ comp
           isDark ? 'text-cyan-400 group-hover:text-cyan-300' : 'text-cyan-700 group-hover:text-cyan-900'
         } ${isOpen ? 'rotate-180' : ''}`} />
       </button>
+
+      {!compact && (
+        <div className={`mt-3 rounded-xl border p-3 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white border-slate-300'}`}>
+          <div className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            Simulation Timeframe
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className={`text-[10px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Start
+              <input
+                type="date"
+                value={startDate}
+                max={endDate && endDate < today ? endDate : today}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={`mt-1 w-full rounded-lg border px-2 py-1.5 text-xs font-mono focus:outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+              />
+            </label>
+            <label className={`text-[10px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              End
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                max={today}
+                onChange={(e) => setEndDate(e.target.value)}
+                className={`mt-1 w-full rounded-lg border px-2 py-1.5 text-xs font-mono focus:outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+              />
+            </label>
+          </div>
+          {(startDate || endDate) && (
+            <button
+              type="button"
+              onClick={() => { setStartDate(''); setEndDate(''); }}
+              className={`mt-2 text-[10px] font-semibold ${isDark ? 'text-cyan-400 hover:text-cyan-300' : 'text-cyan-700 hover:text-cyan-900'}`}
+            >
+              Use all available history
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Popover Menu - Theme Aware Floating Card */}
       {isOpen && (

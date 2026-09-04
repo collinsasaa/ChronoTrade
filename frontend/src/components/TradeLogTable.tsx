@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
 export const TradeLogTable: React.FC = () => {
-  const { backtestResult, selectedSymbol } = useTradeStore();
+  const { backtestResult, selectedSymbol, startDate, endDate } = useTradeStore();
   const { isAuthenticated } = useAuthStore();
   const [filterSide, setFilterSide] = useState<'all' | 'BUY' | 'SELL'>('all');
   const [sortField, setSortField] = useState<'entry_date' | 'pnl' | 'duration_bars'>('entry_date');
@@ -20,6 +20,12 @@ export const TradeLogTable: React.FC = () => {
 
   // Filter trades
   let filteredTrades = trades.filter(t => {
+    const entryDate = t.entry_date ? new Date(t.entry_date).toISOString().slice(0, 10) : '';
+    const exitDate = t.exit_date ? new Date(t.exit_date).toISOString().slice(0, 10) : '';
+    const withinTimeframe =
+      (!startDate || entryDate >= startDate) &&
+      (!endDate || exitDate <= endDate);
+    if (!withinTimeframe) return false;
     if (filterSide === 'all') return true;
     return t.side.includes(filterSide);
   });
@@ -41,7 +47,7 @@ export const TradeLogTable: React.FC = () => {
         summary: analytics.summary,
         risk_metrics: analytics.risk_metrics,
         trade_statistics: analytics.trade_statistics,
-        trades
+        trades: filteredTrades
       };
       const res = await axios.post('/api/export/csv', payload, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -65,7 +71,7 @@ export const TradeLogTable: React.FC = () => {
         summary: analytics.summary,
         risk_metrics: analytics.risk_metrics,
         trade_statistics: analytics.trade_statistics,
-        trades
+        trades: filteredTrades
       };
       const res = await axios.post('/api/export/pdf', payload, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
@@ -92,7 +98,7 @@ export const TradeLogTable: React.FC = () => {
             Institutional Execution Log & Trade Ledger
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            {trades.length} Total Executed Trades | Realized PnL, Commissions, and Friction Cost Breakdown
+            {filteredTrades.length} Total Executed Trades | Realized PnL, Commissions, and Friction Cost Breakdown
           </p>
         </div>
 

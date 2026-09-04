@@ -31,7 +31,7 @@ export const StrategyCompare: React.FC = () => {
 
   // Prepare overlaid equity chart data
   const chartData = comparisonResults.length > 0 ? comparisonResults[0].equity_curve.map((_val: number, idx: number) => {
-    const row: any = { bar: idx };
+    const row: any = { bar: idx, date: comparisonResults[0].dates?.[idx] || idx };
     comparisonResults.forEach((res) => {
       row[res.strategy_name] = res.equity_curve[idx];
     });
@@ -112,7 +112,7 @@ export const StrategyCompare: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" opacity={0.6} />
-                <XAxis dataKey="bar" stroke="#64748B" fontSize={11} label={{ value: 'Trading Bars', position: 'insideBottom', offset: -2, fill: '#64748B' }} />
+                <XAxis dataKey="date" stroke="#64748B" fontSize={11} label={{ value: 'Selected Timeframe', position: 'insideBottom', offset: -2, fill: '#64748B' }} />
                 <YAxis stroke="#64748B" fontSize={11} tickFormatter={(v) => `$${(v/1000).toFixed(1)}k`} />
                 <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px' }} />
                 {comparisonResults.map((res, rIdx) => (
